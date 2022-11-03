@@ -3,9 +3,16 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
+
 import sys
+import os
+def main():
+    filelist = ["qnoether.txt", "random.txt"]
+    metric_name = "throughput"
+    draw_lines(filelist, metric_name)
 
-
+if __name__ == '__main__':
+    main()
 def draw_lines(filelist, metric_name):
     '''
     multiple lines on the same metric (y) with increasing iterations (x)
@@ -13,6 +20,14 @@ def draw_lines(filelist, metric_name):
     :param metric_name:
     :return: 1 (succeed)/0 (fail)
     '''
+
+    # read data
+    data = []
+    for file in filelist:
+        data.append(pd.read_csv(file))
+
+    # draw
+    rcParams['figure.figsize'] = 10, 6
 
     ''' Load Data: [qnoether] '''
     col_list = ["iteration", metric_name]
@@ -23,6 +38,11 @@ def draw_lines(filelist, metric_name):
     y_qnoether = list(df[col_list[1]])
     y_qnoether = [float(y) for y in y_qnoether]
 
+    ''' Load Data: [random] '''
+    col_list = ["iteration", metric_name]
+    df = pd.read_csv("training-results/" + filelist[1], usecols=col_list, sep="\t")
+
+
     ''' Load Data: [Random] '''
     col_list = ["iteration", metric_name]
     df = pd.read_csv("training-results/" + filelist[1], usecols=col_list, sep="\t")
@@ -30,6 +50,39 @@ def draw_lines(filelist, metric_name):
     x_random = [int(x) for x in x_random]
     y_random = list(df[col_list[1]])
     y_random = [float(y) for y in y_random]
+
+    ''' Draw '''
+    plt.plot(x_qnoether, y_qnoether, label="QNoether")
+    plt.plot(x_random, y_random, label="Random")
+    plt.xlabel("Iteration")
+    plt.ylabel(metric_name)
+    plt.legend()
+    plt.show()
+
+    return 1
+
+
+# Path: EinsteinDB-GPT3/src-QNoether/draw.py
+# Compare this snippet from DiabloGPT3/MumfordGrammar/LeanredJoinOrder/src-RTOS/CostTraining.py:
+#             validate.append(input_list[idx])
+#         else:
+#             train.append(input_list[idx])
+#     return train,validate
+#
+#
+# def QueryLoader(QueryDir):
+#     def file_name(file_dir):
+#         import os
+#         L = []
+#         for root, dirs, files in os.walk(file_dir):
+#             for file in files:
+#                 if os.path.splitext(file)[1] == '.sql':
+#                     L.append(os.path.join(root, file))
+#         return L
+#     QueryList = file_name(QueryDir)
+#     return QueryList
+#
+
 
     ''' figure drawing '''
     mpl.rcdefaults()

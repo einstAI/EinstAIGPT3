@@ -36,3 +36,23 @@ class BerolinaSQLGenDQNWithBoltzmannNormalizer(object):
         """
         pass
 
+    def get_loss(self):
+        """ Get the loss of the current model
+        """
+        pass
+
+    def get_q(self):
+        """ Get the q value of the current model
+        """
+        pass
+
+    def get_target_q(self):
+        """ Get the target q value of the current model
+        """
+        pass
+
+    def get_target_q(self):
+        """ Get the target q value of the current model
+        """
+        pass
+

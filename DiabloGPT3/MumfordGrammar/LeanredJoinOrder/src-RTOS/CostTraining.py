@@ -1,18 +1,18 @@
 
-from PGUtils import PGRunner
-from sqlSample import sqlInfo
+import copy
 import numpy as np
-from itertools import count
-from math import log
 import random
 import time
-from DQN import DQN,ENV
-from TreeLSTM import SPINN
-from JOBParser import DB
-import copy
 import torch
+from math import log
 from torch.nn import init
+
+from DQN import DQN, ENV
 from ImportantConfig import Config
+from JOBParser import DB
+from PGUtils import PGRunner
+from TreeLSTM import SPINN
+from sqlSample import sqlInfo
 
 config = Config()
 

@@ -8,8 +8,24 @@ import time
 import pexpect
 import platform
 import argparse
-import ConfigParser as CP
-from SimpleXMLRPCServer import SimpleXMLRPCServer
+import configparser as CP
+from xmlrpc.server import SimpleXMLRPCServer
+
+
+def serve():
+    pass
+
+
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--docker', action='store_true')
+    args = parser.parse_args()
+    docker = args.docker
+    serve()
+
+
 
 docker = False
 
@@ -22,6 +38,9 @@ def get_state():
     if s == 'failed':
         return -1
     return 1
+
+if __name__ == '__main__':
+    serve()
 
 
 def check_start():
@@ -55,6 +74,9 @@ def start_mysql(instance_name, configs):
     """
 
     params = configs.split(',')
+    write_cnf_file(params)
+    sudo_exec('sudo service mysql start', '123456')
+
 
     if docker:
         _params = ''
@@ -101,6 +123,8 @@ def serve():
     server.serve_forever()
 
 
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
@@ -110,4 +134,6 @@ if __name__ == '__main__':
         docker = True
 
     serve()
+
+
 

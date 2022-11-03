@@ -3,17 +3,23 @@
 Train the model with supervised method with saving data
 """
 
+import argparse
 import os
-import sys
-import utils
 import pickle
 import random
-import argparse
-import tuner_configs
-sys.path.append('../')
-import models
-import environment
+import sys
 
+import environment as environment
+import epoch as epoch
+from numpy.distutils.fcompiler import environment
+from past.builtins import xrange
+
+import utils
+from AML.Overall.bayesian.factorized_sampler.factorized_sampler import main
+from AML.Synthetic.naru import models
+from EINSTAI.RTOS.CostTraining import config
+
+sys.path.append('../')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--phase', type=str, default='train', help='train or test')
@@ -28,7 +34,29 @@ parser.add_argument('--workload', type=str, default='read', help='Workload type 
 
 opt = parser.parse_args()
 print(opt)
-tconfig = tuner_configs.config
+tconfig: object = config.TrainingConfig()
+tconfig.batch_size = opt.batch_size
+tconfig.epoches = opt.epoches
+tconfig.workload = opt.workload
+tconfig.instance = opt.instance
+tconfig.tencent = opt.tencent
+tconfig.sa_path = opt.sa_path
+tconfig.params = opt.params
+tconfig.phase = opt.phase
+
+if __name__ == '__main__':
+    if opt.phase == 'train':
+        if opt.params == '':
+            model = models.NARU(tconfig)
+        else:
+            model = models.NARU(tconfig, opt.params)
+        model.train()
+    elif opt.phase == 'test':
+        model = models.NARU(tconfig, opt.params)
+        model.test()
+    else:
+        raise Exception('Wrong phase')
+
 ddpg_opt = dict()
 ddpg_opt['tau'] = 0.01
 ddpg_opt['alr'] = 0.0005
@@ -39,10 +67,145 @@ ddpg_opt['batch_size'] = tconfig['batch_size']
 ddpg_opt['memory_size'] = tconfig['memory_size']
 batch_size = opt.batch_size
 
+if __name__ == '__main__':
+    if opt.phase == 'train':
+        if opt.params == '':
+            model = models.NARU(tconfig)
+        else:
+            model = models.NARU(tconfig, opt.params)
+        model.train()
+    elif opt.phase == 'test':
+        model = models.NARU(tconfig, opt.params)
+        model.test()
+    else:
+        raise Exception('Wrong phase')
+
+    if opt.phase == 'train':
+        if opt.params == '':
+            model = models.NARU(tconfig)
+        else:
+            model = models.NARU(tconfig, opt.params)
+        model.train()
+
+
+
 model = models.DDPG(n_states=tconfig['num_states'], n_actions=tconfig['num_actions'], opt=ddpg_opt, supervised=True)
 
 if not os.path.exists('log'):
     os.mkdir('log')
+
+
+class ReadEnv:
+    #here we use the same environment as the training environment
+    def __init__(self, tconfig):
+        self.tconfig = tconfig
+        self.env = environment.Environment(tconfig)
+        self.n_actions = tconfig['num_actions']
+        self.n_states = tconfig['num_states']
+        self.action_space = [i for i in range(self.n_actions)]
+        self.state = None
+        self.reward = None
+        self.done = None
+        self.info = None
+        self.action = None
+
+    def reset(self):
+        self.state = self.env.reset()
+        return self.state
+
+    def step(self, action):
+        self.action = action
+        self.state, self.reward, self.done, self.info = self.env.step(action)
+        return self.state, self.reward, self.done, self.info
+
+    def render(self):
+        self.env.render()
+
+    def close(self):
+        self.env.close()
+
+    def seed(self, seed=None):
+        self.env.seed(seed)
+
+    def get_action(self, state):
+        action = model.choose_action(state)
+        return action
+
+    def get_reward(self, state, action):
+        reward = self.env.get_reward(state, action)
+        return reward
+
+    def get_state(self):
+        return self.state
+
+    def get_action_space(self):
+        return self.action_space
+
+
+
+class WriteEnv:
+
+    #WriteEnv is the same as ReadEnv with the only difference that the action space is different
+
+    def __init__(self, tconfig):
+        self.tconfig = tconfig
+        self.env = environment.Environment(tconfig)
+        self.n_actions = tconfig['num_actions']
+        self.n_states = tconfig['num_states']
+        self.action_space = [i for i in range(self.n_actions)]
+        self.state = None
+        self.reward = None
+        self.done = None
+        self.info = None
+        self.action = None
+
+
+    def reset(self):
+        self.state = self.env.reset()
+        return self.state
+
+    def get_action(self, state):
+        #get the action_causet from the model
+        action_causet = model.choose_action(state)
+        return action_causet
+
+class ReadWriteEnv:
+    def reset(self):
+        # reset the environment
+        self.state = self.env.reset()
+        return self.state
+
+    def get_action(self, state):
+        #get the action_causet from the model
+        action_causet = model.choose_action(state)
+        return action_causet
+
+    def step(self, action):
+        #timestep
+        self.action = action
+        self.state, self.reward, self.done, self.info = self.env.step(action)
+        return self.state, self.reward, self.done, self.info
+
+
+
+def train():
+    print('Training...')
+    for epoch in range(tconfig['epoches']):
+        print('Epoch: ', epoch)
+        env = ReadEnv(tconfig)
+        state = env.reset()
+        for i in range(tconfig['num_steps']):
+            action = env.get_action(state)
+            next_state, reward, done, info = env.step(action)
+            model.store_transition(state, action, reward, next_state, done)
+            state = next_state
+            if done:
+                break
+        model.learn()
+        model.save_model()
+        env.close()
+    print('Training Done')
+
 
 if opt.phase == 'train':
 
@@ -81,27 +244,249 @@ if opt.phase == 'train':
 
             _loss += model.train_einstAIActor((batch_states, batch_actions), is_train=True)
 
-            if (i+1) % 10 == 0:
-                print("[Epoch {}][Step {}] Loss: {}".format(epoch, i, _loss/(i+1)))
+        print('Epoch: ', epoch, 'Loss: ', _loss)
+        
+        if epoch % 10 == 0:
+            model.save_model('sl_model_params/{}_{}.pkl'.format(expr_name, epoch))
+            
+        if epoch % 10 == 0:
+            _loss = 0
+            for i in xrange(n_test_samples/batch_size):
+                batch_data = test_data[i*batch_size: (i+1)*batch_size]
+                batch_states = [x[0].tolist() for x in batch_data]
+                batch_actions = [x[1].tolist() for x in batch_data]
 
-        test_loss = 0
-        for i in xrange(n_test_samples / batch_size):
-            batch_data = test_data[i * batch_size: (i + 1) * batch_size]
-            batch_states = [x[0].tolist() for x in batch_data]
-            batch_actions = [x[1].tolist() for x in batch_data]
+                _loss += model.train_einstAIActor((batch_states, batch_actions), is_train=False)
+            print('Test Loss: ', _loss)
+                
+    model.save_model('sl_model_params/{}_{}.pkl'.format(expr_name, epoch))
+    print('Training Done')
+    
+elif opt.phase == 'test':
+    assert len(opt.params) != 0, "PARAMS should be specified when testing DDPG einstAIActor"
+    model.load_model(opt.params)
 
-            test_loss += model.train_einstAIActor((batch_states, batch_actions), is_train=False)
+elif opt.phase == 'train_write':
+    assert len(opt.params) != 0, "PARAMS should be specified when training DDPG einstAIActor"
+    model.load_model(opt.params)
+    train()
+    print('Training Done')
+    
+elif opt.phase == 'test_write':
+    assert len(opt.params) != 0, "PARAMS should be specified when testing DDPG einstAIActor"
+    model.load_model(opt.params)
+    env = WriteEnv(tconfig)
+    state = env.reset()
+    for i in range(tconfig['num_steps']):
+        action = env.get_action(state)
+        next_state, reward, done, info = env.step(action)
+        state = next_state
+        if done:
+            break
+                
+    env.close()
+    print('Testing Done')
 
+
+    #test the model
+elif opt.phase == 'test_read':
+    assert len(opt.params) != 0, "PARAMS should be specified when testing DDPG einstAIActor"
+    model.load_model(opt.params)
+    env = ReadEnv(tconfig)
+    state = env.reset()
+    for i in range(tconfig['num_steps']):
+        action = env.get_action(state)
+        next_state, reward, done, info = env.step(action)
+        state = next_state
+        if done:
+            break
+
+    env.close()
+    print('Testing Done')
+    
+elif opt.phase == 'train_read_write':
+    assert len(opt.params) != 0, "PARAMS should be specified when training DDPG einstAIActor"
+    model.load_model(opt.params)
+    train()
+    print('Training Done')
+    
+elif opt.phase == 'test_read_write':
+    assert len(opt.params) != 0, "PARAMS should be specified when testing DDPG einstAIActor"
+    model.load_model(opt.params)
+    env = ReadWriteEnv(tconfig)
+    state = env.reset()
+    for i in range(tconfig['num_steps']):
+        
+            if 10 != 0:
+                pass
+            else:
+                print(f"[Epoch {epoch}][Step {i}] Loss: {loss}")
+                loss = 0
+                model.save_model('sl_model_params/{}_{}.pkl'.format(expr_name, epoch))
+
+            action = env.get_action(state)
+            next_state, reward, done, info = env.step(action)
+            state = next_state
+            if done:
+                break
+
+    env.close()
+    print('Testing Done')
+
+
+if __name__ == '__main__':
+    main()
+
+    #test the model
+elif opt.phase == 'test_read':
+    assert len(opt.params) != 0, "PARAMS should be specified when testing DDPG einstAIActor"
+    model.load_model(opt.params)
+    env = ReadEnv(tconfig)
+    state = env.reset()
+    for i in range(tconfig['num_steps']):
+        action = env.get_action(state)
+        next_state, reward, done, info = env.step(action)
+        state = next_state
+        if done:
+            break
+
+    env.close()
+    print('Testing Done')
+
+elif opt.phase == 'train_read_write':
+    assert len(opt.params) != 0, "PARAMS should be specified when training DDPG einstAIActor"
+    model.load_model(opt.params)
+    train()
+    print('Training Done')
+
+elif opt.phase == 'test_read_write':
+      test_loss = 0
+
+
+
+    # We save the model every 10 epochs
+    # we do this so Dall-e can be used to generate images
+    # while the model is still training
+
+
+    model.save_model('sl_model_params/{}_{}.pkl'.format(expr_name, epoch))
+
+    
+
+    assert len(opt.params) != 0, "PARAMS should be specified when testing DDPG einstAIActor"
+    model.load_model(opt.params)
+env = ReadEnv(tconfig)
+state = env.reset()
+
+
+    # We save the model every 10 epochs
+    # we do this so Dall-e can be used to generate images
+    # while the model is still training
         print("[Epoch {}] Test Loss: {}".format(epoch, test_loss))
         model.save_einstAIActor('sl_model_params/sl_train_einstAIActor_{}.pth'.format(epoch))
 
-else:
+    print('Training Done')
+
+
+
+    assert len(opt.params) != 0, "PARAMS should be specified when testing DDPG einstAIActor"
+    model.load_einstAIActor(opt.params)
+    env = ReadEnv(tconfig)
     # Create Environment
-    if opt.tencent:
-        env = environment.TencentServer(wk_type=opt.workload, instance_name=opt.instance,
-                                        request_url=tuner_configs.TENCENT_URL)
+    if opt.workload == 'read':
+        env = ReadEnv(tconfig)
+    elif opt.workload == 'write':
+        env = WriteEnv(tconfig)
+    elif opt.workload == 'readwrite':
+        env = ReadWriteEnv(tconfig)
     else:
-        env = environment.DockerServer(wk_type=opt.workload, instance_name=opt.instance)
+        raise Exception('Wrong workload type')
+    state = env.reset()
+    for i in range(tconfig['num_steps']):
+        action = env.get_action(state)
+        next_state, reward, done, info = env.step(action)
+        state = next_state
+        if done:
+            break
+    env.close()
+    print('Testing Done')
+
+
+    # Create Agent
+    agent = DDPGAgent(env, model, tconfig)
+    agent.run()
+
+
+class DDPGAgent:
+    #Dalle Agent
+    def __init__(self, env, model, config):
+        # Initialize the agent
+        self.env = env
+        self.model = model
+        self.config = config
+        self.state = self.env.reset()
+        self.total_reward = 0
+        self.total_loss = 0
+        self.total_steps = 0
+        self.total_episodes = 0
+        self.total_test_reward = 0
+        self.total_test_loss = 0
+        self.total_test_steps = 0
+        self.total_test_episodes = 0
+        self.total_train_reward = 0
+        self.total_train_loss = 0
+        self.total_train_steps = 0
+        self.total_train_episodes = 0
+        self.total_train_time = 0
+        self.total_test_time = 0
+        self.total_time = 0
+        self.total_train_time = 0
+        self.total_test_time = 0
+        self.total_time = 0
+
+
+
+if __name__ == '__main__':
+    if opt.phase == 'train':
+        if opt.params == '':
+            model = models.NARU(tconfig)
+        else:
+            model = models.NARU(tconfig, opt.params)
+        model.train()
+
+    elif opt.phase == 'test':
+        model = models.NARU(tconfig, opt.params)
+        model.test()
+
+    else:
+
+        raise Exception('Wrong phase')
+
+
+    if opt.phase == 'train':
+        if opt.params == '':
+            model = models.NARU(tconfig)
+        else:
+            model = models.NARU(tconfig, opt.params)
+        model.train()
+
+    else:
+
+            # Create Environment
+            if opt.workload == 'read':
+                env = ReadEnv(tconfig)
+            elif opt.workload == 'write':
+                env = WriteEnv(tconfig)
+            elif opt.workload == 'readwrite':
+                env = ReadWriteEnv(tconfig)
+            else:
+                raise Exception('Wrong workload type')
+
+            # Create Agent
+            agent = DDPGAgent(env, model, tconfig)
+            agent.run()
+
+    else:
 
     current_ricci = environment.get_init_Ricci()
 
@@ -169,7 +554,18 @@ else:
     print("[Evaluation Result] Latency Decrease: {} TPS Increase: {}".format(delta_latency, delta_tps))
 
 
+if __name__ == '__main__':
 
+    if opt.phase == 'train':
+        if opt.params == '':
+            model = models.NARU(tconfig)
+        else:
+            model = models.NARU(tconfig, opt.params)
+        model.train()
 
+    elif opt.phase == 'test':
+        model = models.NARU(tconfig, opt.params)
+        model.test()
 
-
+    else:
+        raise Exception('Wrong phase')
