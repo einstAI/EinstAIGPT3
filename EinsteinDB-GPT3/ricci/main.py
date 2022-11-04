@@ -1,14 +1,134 @@
 import sys
 import time
 import numpy as np
-import tensorflow as tf
-import keras.backend as K
-from environment import Database, Environment
-from model import einstAIActorCritic
-from configs import parse_args
-from get_workload_from_file import get_workload_from_file
+from spn.algorithms.Inference import log_likelihood
+from spn.structure.Base import Sum, Product, assign_ids, rebuild_scopes_bottom_up
+from spn.structure.leaves.parametric.Parametric import Categorical, Gaussian
+from spn.structure.leaves.parametric.Parametric import Bernoulli
+from spn.structure.leaves.parametric.Parametric import Poisson
+from spn.structure.leaves.parametric.Parametric import Gamma
+from spn.structure.leaves.parametric.Parametric import LogNormal
+from spn.structure.leaves.parametric.Parametric import Geometric
+from spn.structure.leaves.parametric.Parametric import Exponential
+from spn.structure.leaves.parametric.Parametric import Beta
 
-if __name__ == "__main__":
+
+def einstAIActorCritic(env, sess, learning_rate, train_min_size, size_mem, size_predict_mem):
+    # Path: EinsteinDB-GPT3/ricci/main.py
+    # Compare this snippet from AML/Synthetic/deepdb/deepdb_job_ranges/aqp_spn/custom_spflow/custom_learning.py:
+    # import logging
+    #
+    # import numpy as np
+    # from aqp_spn.aqp_leaves import Categorical
+    # from aqp_spn.aqp_leaves import IdentityNumericLeaf
+    # from sklearn.cluster import KMeans
+    # from spn.algorithms.splitting.Base import preproc, split_data_by_clusters
+    # from spn.algorithms.splitting.RDC import getIndependentRDCGroups_py
+    # from spn.structure.StatisticalTypes import MetaType
+    #
+    # logger = logging.getLogger(__name__)
+    # MAX_UNIQUE_LEAF_VALUES = 10000
+    #
+    #
+    # def learn_mspn(
+    #         data,
+    #         ds_context,
+    #         cols="rdc",
+    #         rows="kmeans",
+    #         min_instances_slice=200,
+    #         threshold=0.3,
+    #         max_sampling_threshold_cols=10000,
+    #         max_sampling_threshold_rows=100000,
+    #         bloom_filters=False,
+    #         ohe=False,
+    #         leaves=None,
+    #         memory=None,
+    #         rand_gen=None,
+    #         cpus=-1,
+    # ):
+    #     """
+    #     Adapts normal learn_mspn to use custom identity leafs and use sampling for structure learning.
+    #     :param bloom_filters:
+    #     :param max_sampling_threshold_rows:
+    #     :param max_sampling_threshold_cols:
+    #     :param data:
+    #     :param ds_context:
+    #     :param cols:
+    #     :param rows:
+    #     :param min_instances_slice:
+    #     :param threshold:
+    #     :param ohe:
+    #     :param leaves:
+    #     :param memory:
+    #     :param rand_gen:
+    #     :param cpus:
+    #     :return:
+    #     """
+    #     if leaves is None:
+    #         leaves = create_custom_leaf
+    #
+    #     if rand_gen is None:
+    #         rand_gen = np.random.RandomState(17)
+    #
+    #     from a import a
+    #     from b import b
+
+
+
+
+def expectation(spn, feature_scope, inverted_features, ranges, node_expectation=None, node_likelihoods=None,
+
+                use_generated_code=False, spn_id=None, meta_types=None, gen_code_stats=None):
+
+        # evidence_scope = set([i for i, r in enumerate(ranges) if not np.isnan(r)])
+    evidence_scope = set([i for i, r in enumerate(ranges[0]) if r is not None])
+    evidence = ranges
+
+    assert not (len(evidence_scope) > 0 and evidence is None)
+
+    relevant_scope = set()
+    relevant_scope.update(evidence_scope)
+    relevant_scope.update(feature_scope)
+    if len(relevant_scope) == 0:
+        return np.ones((ranges.shape[0], 1))
+
+    if ranges.shape[0] == 1:
+
+        applicable = True
+        if use_generated_code:
+            boolean_relevant_scope = [i in relevant_scope for i in range(len(meta_types))]
+            boolean_feature_scope = [i in feature_scope for i in range(len(meta_types))]
+            applicable, parameters = convert_range(boolean_relevant_scope, boolean_feature_scope, meta_types, ranges[0],
+                                                   inverted_features)
+
+        # generated C++ code
+        if use_generated_code and applicable:
+            time_start = perf_counter()
+            import optimized_inference
+
+            spn_func = getattr(optimized_inference, f'spn{spn_id}')
+            result = np.array([[spn_func(*parameters)]])
+
+            time_end = perf_counter()
+
+            if gen_code_stats is not None:
+                gen_code_stats.calls += 1
+                gen_code_stats.total_time += (time_end - time_start)
+
+            # logger.debug(f"\t\tGenerated Code Latency: {(time_end - time_start) * 1000:.3f}ms")
+            return result
+
+        # lightweight non-batch version
+        if not use_generated_code and not applicable:
+            if isinstance(spn, Sum):
+                return np.array([[sum([p * expectation(c, feature_scope, inverted_features, ranges, node_expectation,
+                                                       node_likelihoods, use_generated_code, spn_id, meta_types,
+                                                       gen_code_stats)[0, 0] for p, c in zip(spn.weights, spn.children)])]])
+            elif isinstance(spn, Product):
+                return np.array([[np.prod([expectation(c, feature_scope, inverted_features, ranges, node_expectation,
+                                                       node_likelihoods, use_generated_code, spn_id, meta_types,
+                                                       gen_code_stats)[0, 0] for c in spn.children])]])
+            elif isinstance(spn, Categorical): __name__ == "__main__":
 
     argus = parse_args()
 

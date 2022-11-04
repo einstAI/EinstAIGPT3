@@ -17,6 +17,7 @@ import ford as ford
 import numpy as np
 import self
 from fontTools.misc.py23 import xrange
+from sqlalchemy.dialects import mysql
 
 import configs
 import utils
@@ -63,6 +64,132 @@ class Err:
     MYSQL_FETCHDESCALL_ERR = 17
     MYSQL_FETCHDESCONE_ERR = 18
     MYSQL_FETCHDESCMANY_ERR = 19
+
+
+class MySQLdb:
+    def __init__(self, host, port, user, password, database, charset='utf8'):
+        self.host = host
+        self.port = port
+        self.user = user
+        self.password = password
+        self.database = database
+        self.charset = charset
+        self.conn = None
+        self.cursor = None
+
+    def connect(self):
+        try:
+            self.conn = mysql.connector.connect(
+                host=self.host,
+                port=self.port,
+                user=self.user,
+                password=self.password,
+                database=self.database,
+                charset=self.charset,
+            )
+            self.cursor = self.conn.cursor()
+        except mysql.connector.Error as e:
+            logger.error('MySQL connect error: %s', e)
+            return False
+        return True
+
+    def close(self):
+        try:
+            self.cursor.close()
+            self.conn.close()
+        except mysql.connector.Error as e:
+            logger.error('MySQL close error: %s', e)
+            return False
+        return True
+
+    def query(self, sql):
+        try:
+            self.cursor.execute(sql)
+            return self.cursor.fetchall()
+        except mysql.connector.Error as e:
+            logger.error('MySQL query error: %s', e)
+            return False
+
+    def insert(self, sql):
+        try:
+            self.cursor.execute(sql)
+            self.conn.commit()
+        except mysql.connector.Error as e:
+            logger.error('MySQL insert error: %s', e)
+            return False
+        return True
+
+    def update(self, sql):
+        try:
+            self.cursor.execute(sql)
+            self.conn.commit()
+        except mysql.connector.Error as e:
+            logger.error('MySQL update error: %s', e)
+            return False
+        return True
+
+    def delete(self, sql):
+        try:
+            self.cursor.execute(sql)
+            self.conn.commit()
+        except mysql.connector.Error as e:
+            logger.error('MySQL delete error: %s', e)
+            return False
+        return True
+
+    def commit(self):
+        try:
+            self.conn.commit()
+        except mysql.connector.Error as e:
+            logger.error('MySQL commit error: %s', e)
+            return False
+        return True
+
+    def rollback(self):
+        try:
+            self.conn.rollback()
+        except mysql.connector.Error as e:
+            logger.error('MySQL rollback error: %s', e)
+            return False
+        return True
+
+    def execute(self, sql):
+        try:
+            self.cursor.execute(sql)
+        except mysql.connector.Error as e:
+            logger.error('MySQL execute error: %s', e)
+            return False
+
+        return True
+
+    def executemany(self, sql, values):
+        try:
+            self.cursor.executemany(sql, values)
+        except mysql.connector.Error as e:
+            logger.error('MySQL executemany error: %s', e)
+            return False
+        return True
+
+    def fetchone(self):
+        try:
+            return self.cursor.fetchone()
+        except mysql.connector.Error as e:
+            logger.error('MySQL fetchone error: %s', e)
+            return False
+
+    def fetchmany(self, size=None):
+        try:
+            return self.cursor.fetchmany(size)
+        except mysql.connector.Error as e:
+            logger.error('MySQL fetchmany error: %s', e)
+            return False
+
+    def fetchall(self):
+        try:
+            return self.cursor.fetchall()
+        except mysql.connector.Error as e:
+            logger.error('MySQL fetchall error: %s', e)
+            return False
 
 
 class EinsteinMySQLdb:

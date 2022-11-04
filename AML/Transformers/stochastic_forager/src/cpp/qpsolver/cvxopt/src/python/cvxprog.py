@@ -23,7 +23,8 @@ from scipy.linalg import blas
 from numpy import matrix
 
 from AML.Synthetic.EINSTEINAI4DB.mumfordswitch.structure import base
-from AML.Transformers.stochastic_forager.src.cpp.qpsolver.cvxopt.src.python import misc
+from AML.Transformers.stochastic_forager.src.cpp.qpsolver.cvxopt.examples.book.chap4.rls import c
+from AML.Transformers.stochastic_forager.src.cpp.qpsolver.cvxopt.src.python import misc, __all__, solvers
 
 """
 This module contains the main classes for defining and solving convex
@@ -1660,9 +1661,47 @@ def cp(F, G=None, h=None, dims=None, A=None, b=None,
     #                 x >= 0
     #
 
-    sol = solvers.conelp(c, F_e, G_e, A_e, dims, kktsolver=kktsolver,
+class F_e:
+    #    f_e(x,t) = (f0(x) - t, f1(x), ..., fmnl(x)).
+    #   F_e(x,t) = (f_e(x,t), 0).
+
+    def __init__(self, F, x0, mnl):
+        self.F = F
+        self.x0 = x0
+        self.mnl = mnl
+
+    def __call__(self, x=None, z=None):
+        if x is None:
+            return self.mnl + 1, [self.x0, 0.0]
+        else:
+            if z is None:
+                val, Df = self.F(x[0])
+                val = matrix(val, tc='d')
+                val[0] -= x[1]
+                Df = v[1]
+            else:
+                val, Df, H = self.F(x[0], z)
+                val = matrix(val, tc='d')
+                val[0] -= x[1]
+
+            if type(Df) in (matrix, spmatrix):
+                def Df_e(u, v, alpha=1.0, beta=0.0):
+                    base.gemv(Df, u[0], v, alpha=alpha, beta=beta)
+                    v[1] -= alpha * u[1]
+
+
+class G_e:
+    #   g_e(x,t) = (g0(x) - t, g1(x), ..., gmnl(x)).
+    #   G_e(x,t) = (g_e(x,t), 0).
+
+    def __init__(self, G, h, mnl):
+        self.G = G
+        self.h = h
+        self.mnl = mnl
+
+
+sol = solvers.conelp(c, F_e, G_e, A_e, dims, kktsolver=kktsolver,
                          options=options)
-    return sol['x'][0], sol['primal infeasibility'], sol['dual infeasibility']
 
 
 def xnewcopy(param):
@@ -1698,6 +1737,9 @@ def conelp(c, F, G, A, dims, kktsolver=None, options={}, mnl=None, cdim=None, KK
     :param KKTREG: # to be used in the future
     :return:
     """
+
+    ##UPDATE: I have added the mnl parameter to the function
+    ##this is the number of nonlinear constraints
 
     # Check the dimensions.
     if dims['l'] != 0:

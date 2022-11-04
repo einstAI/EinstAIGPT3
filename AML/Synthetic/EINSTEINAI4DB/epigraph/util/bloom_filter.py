@@ -174,13 +174,37 @@ if self.backend == 'array':  # pylint: disable=no-else-return
 
     def __len__(self):
         """Return the number of bits in the Bloom Filter"""
-        return self.num_bits_m
+        return self.num_bits_m * 8 # pylint: disable=no-member
 
     def __repr__(self):
         """Return a string representation of the Bloom Filter"""
-        return '%s(%d, %d, %s)' % (self.__class__.__name__,
+        return '%s(%d, %d, %s)' % (self.__class__.__name__, self.num_bits_m, self.num_probes_k, self.backend) # pylint: disable=no-member
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Close the Bloom Filter"""
+        if self.backend == 'mmap':
+            self.mmap.close()
+        elif self.backend == 'bufsock':
+            self.bufsock.close()
+        elif self.backend == 'hashlib':
+            self.bufsock.close()
 
-        self.num_bits_m, self.num_probes_k, self.backend)
+    def __enter__(self):
+        """Enter the Bloom Filter"""
+        return self
+
+
+    def __del__(self):
+        """Delete the Bloom Filter"""
+
+        if self.backend == 'mmap':
+            self.mmap.close()
+        elif self.backend == 'bufsock':
+            self.bufsock.close()
+        elif self.backend == 'hashlib':
+            self.bufsock.close()
+
+
+
 
     def __str__(self):
         """Return a string representation of the Bloom Filter"""

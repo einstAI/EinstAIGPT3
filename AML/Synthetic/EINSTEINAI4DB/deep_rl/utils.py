@@ -1,16 +1,39 @@
 import copy
+import itertools
 
 
-def print_conditions(conditions, seperator='Λ'):
-    """Pretty prints a set of conditions with a custom seperator."""
+def print_conditions(conditions, seperator):
+    """Prints the conditions in a readable format."""
 
-    formula = ""
-    for i, (table, condition) in enumerate(conditions):
-        formula += table + "." + condition
-        if i < len(conditions) - 1:
-            formula += ' ' + seperator + ' '
+    conditions_str = ""
+    for condition in conditions:
+        conditions_str += condition + seperator
 
-    return formula
+    conditions_str = conditions_str[:-len(seperator)]
+
+    return conditions_str
+
+
+def gen_where_formula(conditions, seperator='Λ'):
+    """Generates the where formula for a set of conditions."""
+
+    where_cond = print_conditions(conditions, seperator=seperator)
+    if where_cond:
+        where_cond = "WHERE " + where_cond
+
+    return where_cond
+
+
+def gen_select_formula(table_set, relationship_set, conditions, seperator='Λ'):
+    """Generates the select formula for a set of conditions."""
+
+    select_formula = ""
+    for table in table_set:
+        select_formula += table + ".*, "
+
+    select_formula = select_formula[:-2]
+
+    return select_formula
 
 
 def gen_full_join_query(schema_graph, relationship_set, table_set, join_type):
@@ -58,3 +81,4 @@ def gen_full_join_query(schema_graph, relationship_set, table_set, join_type):
                     relationships.remove(relationship_to_add)
 
     return "SELECT {} FROM " + from_clause + " {}"
+

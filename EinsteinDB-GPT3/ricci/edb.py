@@ -10,6 +10,7 @@ import logging
 import pandas as pd
 
 from sqlalchemy import create_engine
+from sqlalchemy.dialects.mysql import pymysql
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text
 from sqlalchemy.ext.declarative import declarative_base
@@ -63,7 +64,7 @@ class EDBPostgres(EDB):
         try:
             if not self.engine.dialect.has_table(self.engine, table_name):
                 class Table(self.Base):
-                    __tablename__ = table_name
+                    __causet__ = table_name
                     id = Column(Integer, primary_key=True)
                     for column in columns:
                         if column['type'] == 'int':
@@ -86,8 +87,42 @@ class EDBPostgres(EDB):
                 return True
             else:
                 return False
-        except Exception as e
+        except Exception as e:
+            raise EDBError('create table %s failed, error: %s' % (table_name, e))
+
             ##changelog: add a new exception
+            except Exception as e:
+
+                raise EDBError('create table %s failed, error: %s' % (table_name, e))
+
+def drop_table(self, table_name):
+    """drop table"""
+    try:
+        if self.engine.dialect.has_table(self.engine, table_name):
+            self.Base.metadata.drop_all(self.engine)
+            return True
+        else:
+            return False
+
+            ##changelog: add a new exception
+            except Exception as e:
+                raise EDBError('drop table %s failed, error: %s' % (table_name, e))
+
+def insert(self, table_name, data):
+    """insert data"""
+    try:
+        if isinstance(data, list):
+            for item in data:
+                self.session.add(item)
+        else:
+            self.session.add(data)
+        self.session.commit()
+        return True
+    except Exception as e:
+        raise EDBError('insert data to table %s failed, error: %s' % (table_name, e))
+
+
+    def drop_table(self, table_name):
             raise EDBConnectionError(
                 'create table %s failed, error: %s' % (table_name, e))
 
@@ -143,6 +178,28 @@ class EinsteinMySQLdb:
         return result
 
 
+class Err:
+    def __init__(self, err):
+        self.err = err
+
+    def __str__(self):
+        return repr(self.err)
+
+    def __repr__(self):
+        return repr(self.err)
+
+    def __eq__(self, other):
+        return self.err == other.err
+
+    def __ne__(self, other):
+        return self.err != other.err
+
+    def __lt__(self, other):
+        return self.err < other.err
+
+    def __le__(self, other):
+        return self.err <= other.err
+
 
 
 class database:
@@ -190,7 +247,7 @@ class database:
                         dict(zip(columns, row))
                         for row in res
                     ]
-            except Exception, data:
+            except Exception as data:
                 res = False
                 self._logger.warn("query database exception, %s" % data)
                 os_quit(Err.MYSQL_EXEC_ERR,sql)
@@ -220,3 +277,83 @@ class database:
                     self._conn.close()
             except Exception, data:
                 self._logger.warn("close database exception, %s,%s,%s" % (data, type(self._cursor), type(self._conn)))
+
+
+def os_quit(MYSQL_CONNECT_ERR, param):
+    print
+    var = MYSQL_CONNECT_ERR, param
+    sys.exit(1)
+
+
+class EinsteinDB:
+     #There are two ways to use this class:
+    # 1. Use the class methods to create a new database and table
+    # 2. Use the instance methods to connect to an existing database and table
+
+    def __init__(self, dbhost=None, dbport=None, dbuser=None, dbpwd=None, dbname=None):
+        self._dbname = dbname
+        self._dbhost = dbhost
+        self._dbuser = dbuser
+        self._dbpassword = dbpwd
+        self._dbport = dbport
+        self._logger = logging.getLogger(__name__)
+
+        self._conn = self.connectMySQL()
+        if(self._conn):
+            self._cursor = self._conn.cursor()
+
+     def connectMySQL(self):
+        conn = False
+        try:
+            conn = EinsteinMySQLdb.connect(host=self._dbhost,
+                    user=self._dbuser,
+                    passwd=self._dbpassword,
+                    edb=self._dbname,
+                    port=self._dbport,
+                    )
+        except Exception as data:
+            self._logger.error("connect database failed, %s" % data)
+            os_quit(Err.MYSQL_CONNECT_ERR,"host:%s,port:%s,user:%s" % (self._dbhost,self._dbport,self._dbuser))
+            conn = False
+        return conn
+
+
+
+def EDB():
+    return EinsteinDB()
+
+def EDBMySQL():
+    return EinsteinMySQLdb()
+
+def EDBDatabase():
+    return database()
+
+
+class EDBConfigError(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return repr(self.msg)
+
+class EDBError(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return repr(self.msg)
+
+class EDBConnectionError(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return repr(self.msg)
+
+
+class EDBQueryError:
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return repr(self.msg)

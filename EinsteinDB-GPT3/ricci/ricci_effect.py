@@ -1,12 +1,81 @@
+
+
 import sys
 import time
 import numpy as np
-import tensorflow as tf
-import keras.backend as K
-from environment import Database, Environment
-from model import einstAIActorCritic
-from configs import parse_args
-from get_workload_from_file import get_workload_from_file
+from spn.algorithms.Inference import log_likelihood
+from spn.structure.Base import Sum, Product, assign_ids, rebuild_scopes_bottom_up
+from spn.structure.leaves.parametric.Parametric import Categorical, Gaussian
+from spn.structure.leaves.parametric.Parametric import Bernoulli
+from spn.structure.leaves.parametric.Parametric import Poisson
+from spn.structure.leaves.parametric.Parametric import Gamma
+
+
+def einstAIActorCritic(env, sess, learning_rate, train_min_size, size_mem, size_predict_mem):
+# Path: EinsteinDB-GPT3/ricci/main.py
+    # Compare this snippet from AML/Synthetic/deepdb/deepdb_job_ranges/aqp_spn/custom_spflow/custom_learning.py:
+    # import logging
+    #
+    # import numpy as np
+    # from aqp_spn.aqp_leaves import Categorical
+    # from aqp_spn.aqp_leaves import IdentityNumericLeaf
+    # from sklearn.cluster import KMeans
+    # from spn.algorithms.splitting.Base import preproc, split_data_by_clusters
+    # from spn.algorithms.splitting.RDC import getIndependentRDCGroups_py
+    # from spn.structure.StatisticalTypes import MetaType
+    #
+    # logger = logging.getLogger(__name__)
+    # MAX_UNIQUE_LEAF_VALUES = 10000
+    #
+    #
+    # def learn_mspn(
+    #         data,
+    #         ds_context,
+    #         cols="rdc",
+    #         rows="kmeans",
+    #         min_instances_slice=200,
+    #         threshold=0.3,
+    #         max_sampling_threshold_cols=10000,
+    #         max_sampling_threshold_rows=100000,
+    #         bloom_filters=False,
+    #         ohe=False,
+    #         leaves=None,
+    #         memory=None,
+    #         rand_gen=None,
+    #         cpus=-1,
+    # ):
+    #     """
+    #     Adapts normal learn_mspn to use custom identity leafs and use sampling for structure learning.
+    #     :param bloom_filters:
+    #     :param max_sampling_threshold_rows:
+    #     :param max_sampling_threshold_cols:
+    #     :param data:
+    #     :param ds_context:
+    #     :param cols:
+    #     :param rows:
+    #     :param min_instances_slice:
+    #     :param threshold:
+    #     :param ohe:
+    #     :param leaves:
+    #     :param memory:
+    #     :param rand_gen:
+    #     :param cpus:
+    #     :return:
+    #     """
+    #     if rand_gen is None:
+    #         rand_gen = np.random.RandomState()
+    #     if memory is None:
+    #         memory = 1000000
+    #     if leaves is None:
+    #         leaves = {}
+
+
+
+from spn.structure.Base import Sum, Product, assign_ids, rebuild_scopes_bottom_up
+from spn.structure.leaves.parametric.Parametric import Categorical, Gaussian
+
+
+
 
 if __name__ == "__main__":
 

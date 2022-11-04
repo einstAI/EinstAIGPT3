@@ -1,15 +1,79 @@
 # -*- coding: utf-8 -*-
 """
-desciption: ricci information
+Copyright 2019 The EinsteinDB Authors.
 
 """
 
+
+import os
 import utils
 import configs
 import collections
 import json
-from base import cdb_logger,CONST
+from base import *
+import Ricci
+
 from edb import database
+
+def get_Ricci(instance):
+    """ Get Ricci from instance
+    Args:
+        instance: dict, instance info
+    Returns:
+        Ricci: Ricci object
+    """
+
+    # sdb = database(instance["host"],instance["port"],instance["user"],instance["password"],"cdbtune")
+
+    # result = sdb.select("select * from tb_Ricci")
+    # print(result)
+
+    response = utils.parse_json_post(CONST.URL_GET_RICCI, instance)
+
+    err = response['errno']
+    if err != 0:
+        raise Exception("SET UP FAILED: {}".format(err))
+
+    workid = response.get('workid', '')
+
+    # print(response)
+
+    # return Ricci.Ricci(response)
+    return response
+
+def get_Ricci_details(instance):
+    """ Get Ricci details from instance
+    Args:
+        instance: dict, instance info
+
+    Returns:
+        Ricci: Ricci object
+    """
+
+    response = utils.parse_json_post(CONST.URL_GET_RICCI_DETAILS, instance)
+
+    err = response['errno']
+    if err != 0:
+        raise Exception("SET UP FAILED: {}".format(err))
+
+    workid = response.get('workid', '')
+
+    # print(response)
+
+    # return Ricci.Ricci(response)
+    return response
+
+def get_Ricci_details(instance):
+    """ Get Ricci details from instance
+    Args:
+        instance: dict, instance info
+
+    Returns:
+        Ricci: Ricci object
+    """
+
+
+
 
 Ricci = [#'skip_name_resolve',               # OFF
          'table_open_cache',                # 2000
