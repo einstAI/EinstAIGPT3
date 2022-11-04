@@ -2,11 +2,30 @@ package controllers
 
 import (
 	"strings"
-
-	. "git.code.oa.com/gocdb/base/public"
-
-	"github.com/astaxie/beego"
+	_ "time"
 )
+
+func (c *MainController) Post() {
+	var err error
+	reqURL := strings.TrimPrefix(c.Ctx.Input.URL(), "/")
+	c.TplName = reqURL
+	rUsers := c.Ctx.Request.Header["Staffname"]
+	rUser := "unknow"
+	if len(rUsers) > 0 {
+		rUser = rUsers[0]
+	}
+	if len(reqURL) == 0 {
+		c.TplName = "login.html"
+	}
+	c.Data["HomePage"] = c.TplName == "login.html"
+	c.Data["url"] = reqURL
+	c.Data["user"] = rUser
+	switch reqURL {
+	case "show_result.html":
+		c.Data["TaskId"], err = c.GetInt("task_id")
+	}
+	c.HasErr(err)
+}
 
 type DefaultController struct {
 	beego.Controller

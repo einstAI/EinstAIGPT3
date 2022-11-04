@@ -87,7 +87,25 @@ print(env.action_space.low, env.action_space.high)
 n_actions = 1
 n_states = 2
 
+agent = DDPG(n_actions, n_states, config)
+for i_episode in range(100):
+    observation = env.reset()
+    for t in count():
+        env.render()
+        action = agent.choose_action(observation)
+        observation_, reward, done, info = env.step(action)
+        agent.store_transition(observation, action, reward, observation_)
+        agent.learn()
+        observation = observation_
+        if done:
+            print('Episode finished after {} timesteps'.format(t + 1))
+            break
+
+env.close()
+
+# -*- coding: utf-8 -*-
 ddpg = DDPG(
+
     n_actions=n_actions,
     n_states=n_states,
     opt=config
@@ -121,3 +139,5 @@ for i in xrange(10000):
     returns.append(total_reward)
     print("Episode: {} Return: {} Mean Return: {} STD: {}".format(i, total_reward, np.mean(returns), np.std(returns)))
 
+
+# -*- coding: utf-8 -*-

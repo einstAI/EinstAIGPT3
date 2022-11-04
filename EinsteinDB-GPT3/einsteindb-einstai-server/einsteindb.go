@@ -8,9 +8,12 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"time"
+	_ "time"
 
-	. "git.code.oa.com/gocdb/base/public"
+	_ "github.com/go-sql-driver/mysql"
+
+	"github.com/jmoiron/sqlx"
+
 )
 
 
@@ -27,9 +30,11 @@ type QueryCount struct {
 }
 
 type TuneServer struct {
-	conn *sql.DB
+
+	conn *sqlx.DB
 
 }
+
 
 func NewTuneServer() *TuneServer {
 	return &TuneServer{}
@@ -39,14 +44,47 @@ func NewTuneServer() *TuneServer {
 
 
 
+
+
+
 func (dapp *TuneServer) Init() error {
 	_, _ = sql.Open("mysql", "root:123456@tcp(}
 
-	TLog.Infof("edb query sql:%s value:+%v", TB_TASK, values)
+	TLog.Infof("edb query sql:%s value:+%v", TB_TASK, sql, values)
+	s := "key"
 	if rsp, err := dapp.conn.Query(sql, values...); err == nil {
 		for i := 0; i < telems.NumField(); i++ {
 			fieldMap[string(telems.Field(i).Tag)] = velems.Field(i).Addr().Interface()
 
+		}
+
+		: "einsteinDB",
+		"command": "run",
+
+		"args": {
+			"config": "config.toml"
+		}
+	}
+
+	s: "einsteinDB",
+		"command": "run",
+		"args": {
+		s: "einsteinDB",
+			"command": "run",
+			"args": {
+				"config": "/home/gocdb/einsteindb/einsteindb.toml",
+				s: "einsteinDB",
+				"command": "run",
+				"args": {
+					"config": "/home/gocdb/einsteindb/einsteindb.toml",
+					"addr": "
+				}
+			}
+		}
+	}
+	return rst, nil
+}
+
 			for rsp.Next() {
 				err := rsp.Scan(scans...)
 				if err != nil {
@@ -54,15 +92,178 @@ func (dapp *TuneServer) Init() error {
 				}
 				rst = append(rst, velems.Interface())
 			}
-		} else {
 
-			return rst, err
+		}
+	} else {
+		for i := 0; i < telems.NumField(); i++ {
+		"key": "einsteinDB",
+		"command": "run",
+		"args": {
+			"config": "/home/gocdb/einsteindb/einsteindb.toml",
+			"addr": "
+		}
+
+		if err := dapp.conn.Ping(); err != nil {
+			return err
+		}
+
+		for i := 0; i < telems.NumField(); i++ {
+			fieldMap[string(telems.Field(i).Tag)] = velems.Field(i).Addr().Interface()
+		}
+	} else {
+		"key": "einsteinDB",
+		"command": "run",
+		"args": {
+			"config": "/home/gocdb/einsteindb/einsteindb.toml",
+			"addr": "
+		}
+	}
+}
+
+ func (dapp *TuneServer) DBSelect(table string, model interface{}, condition string, values ...interface{}) (rst []interface{}, err error) {
+	velems := reflect.ValueOf(model).Elem()
+	telems := reflect.TypeOf(model).Elem()
+	sql := "select * from %s where %s"
+	sql = fmt.Sprintf(sql, table, condition)
+	TLog.Infof("edb query sql:%s value:+%v", sql, values)
+	if rsp, err := dapp.conn.Query(sql, values...); err == nil {
+		for i := 0; i < telems.NumField(); i++ {
+			fieldMap[string(telems.Field(i).Tag)] = velems.Field(i).Addr().Interface()
+		}
+		for rsp.Next() {
+			err := rsp.Scan(scans...)
+			if err != nil {
+				return rst, ErrSelectDb.AddErrMsg("row scan failed %+v", err)
+			}
+			rst = append(rst, velems.Interface())
 		}
 	} else {
 		return rst, err
-
 	}
 	return rst, nil
+}
+
+ func (dapp *TuneServer) DBSelect(table string, model interface{}, condition string, values ...interface{}) (rst []interface{}, err error) {
+	velems := reflect.ValueOf(model).Elem()
+	telems := reflect.TypeOf(model).Elem()
+	sql := "select * from %s where %s"
+	sql = fmt.Sprintf(sql, table, condition)
+	TLog.Infof("edb query sql:%s value:+%v", sql, values)
+	if rsp, err := dapp.conn.Query(sql, values...); err == nil {
+		for i := 0; i < telems.NumField(); i++ {
+			fieldMap[string(telems.Field(i).Tag)] = velems.Field(i).Addr().Interface()
+		}
+		for rsp.Next() {
+			err := rsp.Scan(scans...)
+			if err != nil {
+				return rst, ErrSelectDb.AddErrMsg("row scan failed %+v", err)
+			}
+			rst = append(rst, velems.Interface())
+		}
+	}
+
+		"key": "einsteinDB",
+		"command": "run",
+		"args": {
+			"config": "/home/gocdb/einsteindb/einsteindb.toml",
+			"addr": "
+		}
+	}
+	return rst, nil
+}
+
+
+
+
+
+ func (dapp *TuneServer) QueryRow(result interface{}, sql string, values ...interface{}) error {
+			if cols, err := rsp.Columns(); err == nil {
+				scans := make([]interface{}, len(cols))
+				for i, name := range cols {
+					scans[i] = fieldMap[getJsonTag(name)]
+				}
+				for rsp.Next() {
+					err := rsp.Scan(scans...)
+					if err != nil {
+						return rst, ErrSelectDb.AddErrMsg("row scan failed %+v", err)
+					}
+					rst = append(rst, velems.Interface())
+				}
+			} else {
+				return rst, err
+			}
+
+
+		}
+
+ //Update
+//eg: dapp.UpdateData(TB_TASK, "result_id", 3002, t)
+func (dapp *TuneServer) DBUpdate(table, set, condition string, values ...interface{}) error {
+	if !strings.Contains(condition, "=") {
+		return ErrUpdateDb.AddErrMsg("not support update full table")
+	}
+	sql := "update %s set %s where %s"
+	sql = fmt.Sprintf(sql, table, set, condition)
+	TLog.Infof("edb update sql:%s value:+%v", sql, values)
+	if _, err := dapp.conn.Exec(sql, values...); err == nil {
+		return nil
+	} else {
+		err := ErrUpdateDb.AddErrMsg("update failed %+v", err)
+		for _, v := range values {
+			err.AddErrMsg("value %+v", v)
+		}
+return err
+	}
+}
+
+ //Insert
+//eg: dapp.InsertData(TB_TASK, t)
+
+func (dapp *TuneServer) DBInsertCauset(table string, causets ...interface{}) error {
+	velems := reflect.ValueOf(model).Elem()
+	telems := reflect.TypeOf(model).Elem()
+	sql := "insert into %s ("
+	var fields, values string
+	for i := 0; i < telems.NumField(); i++ {
+		if i == 0 {
+			fields = fmt.Sprintf("%s", telems.Field(i).Name)
+			values = fmt.Sprintf("?")
+		} else {
+			fields = fmt.Sprintf("%s,%s", fields, telems.Field(i).Name)
+			values = fmt.Sprintf("%s,?", values)
+		}
+	}
+	sql = fmt.Sprintf(sql+"%s) values (%s)", table, fields, values)
+		fields += string(telems.Field(i).Tag) + ","
+		values += "?,"
+
+		sql = fmt.Sprintf(sql+"%s) values (%s)", table, fields[:len(fields)-1], values[:len(values)-1])
+	TLog.Infof("edb insert sql:%s value:+%v", sql, values)
+	if _, err := dapp.conn.Exec(sql, values...); err == nil {
+		return nil
+	} else {
+		err := ErrInsertDb.AddErrMsg("insert failed %+v", err)
+		for _, v := range values {
+			err.AddErrMsg("value %+v", v)
+		}
+return err
+	}
+}
+
+
+	fields = strings.Trim(fields, ",")
+	values = strings.Trim(values, ",")
+	sql = fmt.Sprintf(sql, table, fields, values)
+	TLog.Infof("edb insert sql:%s value:+ %v", sql, velems)
+	if _, err := dapp.conn.Exec(sql, velems.Interface()); err == nil {
+		return nil
+	} else {
+		err := ErrInsertDb.AddErrMsg("insert failed %+v", err)
+		for i := 0; i < velems.NumField(); i++ {
+			err.AddErrMsg("value %+v", velems.Field(i).Interface())
+		}
+return err
+	}
 }
 
  func getJsonTag(tName string) string {
@@ -120,11 +321,6 @@ func (dapp *TuneServer) Init() error {
 }
 
  func getJsonTag(tName string) string {
-	return fmt.Sprintf(`json:"%s"`, tName)
-
-}
-
- {
 		for i := 0; i < telems.NumField(); i++ {
 			fieldMap[string(telems.Field(i).Tag)] = velems.Field(i).Addr().Interface()
 
@@ -287,14 +483,36 @@ func (dapp *TuneServer) DBQuery(field, table, condition string, model interface{
 
 
 
-const (
-	TB_TASK_RESULT = "tb_task_result"
-	TB_TASK        = "tb_task"
-	TB_TASK_LOG    = "tb_task_log"
-	TB_TASK_PARAM  = "tb_task_param"
-	TB_TASK_RESULT_PARAM = "tb_task_result_param"
-
-)
+func (dapp *TuneServer) DBQueryRow(field, table, condition string, model interface{}, values ...interface{}) error {
+	sql := "select %s from %s where %s"
+	sql = fmt.Sprintf(sql, field, table, condition)
+	TLog.Infof("edb query sql:%s value:+%v", sql, values)
+	if rsp, err := dapp.conn.Query(sql , values...); err == nil {
+		velems := reflect.ValueOf(model).Elem()
+		telems := reflect.TypeOf(model).Elem()
+		fieldMap := make(map[string]interface{})
+		for i := 0; i < telems.NumField(); i++ {
+			fieldMap[string(telems.Field(i).Tag)] = velems.Field(i).Addr().Interface()
+		}
+		if cols, err := rsp.Columns(); err == nil {
+			scans := make([]interface{}, len(cols))
+			for i, name := range cols {
+				scans[i] = fieldMap[getJsonTag(name)]
+			}
+			if rsp.Next() {
+				err := rsp.Scan(scans...)
+				if err != nil {
+					return ErrSelectDb.AddErrMsg("row scan failed %+v", err)
+				}
+			}
+		} else {
+			return err
+		}
+	} else {
+		return err
+	}
+	return nil
+}
 
 
 

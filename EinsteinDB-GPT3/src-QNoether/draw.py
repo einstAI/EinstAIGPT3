@@ -63,7 +63,7 @@ def draw_lines(filelist, metric_name):
 
 
 # Path: EinsteinDB-GPT3/src-QNoether/draw.py
-# Compare this snippet from DiabloGPT3/MumfordGrammar/LeanredJoinOrder/src-RTOS/CostTraining.py:
+# Compare this snippet from DiabloGPT3/MumfordGrammar/LeanredJoinOrder/JOBDir/CostTraining.py:
 #             validate.append(input_list[idx])
 #         else:
 #             train.append(input_list[idx])

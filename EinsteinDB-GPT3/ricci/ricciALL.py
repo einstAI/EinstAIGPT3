@@ -3,17 +3,52 @@
 desciption: ricci information
 
 """
+from past.builtins import xrange
 
 import utils
 import configs
+
 import collections
 
-# 700GB
-memory_size = 700*1024*1024*1024
-#
-disk_size = 80*1024*1024*1024
-instance_name = ''
+def load_Ricci(ricci_file):
+    """ Load Ricci from file
+    Args:
+        ricci_file: str, file path
+    Returns:
+        ricci: dict, key: str, value: list
+    """
+    ricci = {}
+    with open(ricci_file, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            items = line.split(',')
+            for item in items[3:]:
+                kv = item.split(':')
+                ricci[kv[0]] = kv[1]
+    return ricci
 
+def get_Ricci():
+    """ Get Ricci from file
+    Returns:
+        ricci: dict, key: str, value: list
+    """
+    return load_Ricci(configs.Ricci_FILE)
+
+def get_Ricci_details():
+    """ Get Ricci details
+    Returns:
+        ricci_details: dict, key: str, value: list
+    """
+    return ricci_DETAILS
+
+def get_Ricci_names(ricci_NAMES=None):
+    """ Get Ricci names
+    Returns:
+        ricci_names: list, ricci names
+    """
+    return ricci_NAMES
 
 Ricci = ['skip_name_resolve',               # OFF
          'table_open_cache',                # 2000
@@ -85,10 +120,13 @@ def init_Ricci(instance, num_more_Ricci):
         'innodb_max_purge_lag': ['integer', [0, 4294967295, 0]],
         'innodb_old_blocks_pct': ['integer', [5, 95, 37]],
         'innodb_read_ahead_threshold': ['integer', [0, 64, 56]],
+        'innodb_stats_on_metadata': ['enum', ['OFF', 'ON']],
+        'innodb_stats_sample_pages': ['integer', [1, 64, 8]],
         'innodb_replication_delay': ['integer', [0, 10000, 0]],
         'innodb_rollback_segments': ['integer', [1, 128, 128]],
         'innodb_sync_array_size': ['integer', [1, 1024, 1]],
-        'innodb_sync_spin_loops': ['integer', [0, 30000, 30]],
+        'innodb_sync_spin_loops': ['integer', [0, 1000000, 30]],
+        'innodb_table_locks': ['enum', ['OFF', 'ON']],
         'innodb_thread_concurrency': ['integer', [0, 1000, 0]],
         'lock_wait_timeout': ['integer', [1, 31536000, 31536000]],
         'metadata_locks_cache_size': ['integer', [1, min(memory_size, 1048576), 1024]],
@@ -168,8 +206,8 @@ def get_init_Ricci():
     Ricci = {}
 
     for name, value in ricci_DETAILS.items():
-        ricci_value = value[1]
-        Ricci[name] = ricci_value[-1]
+        ric_value = value[1]
+        Ricci[name] = ric_value[-1]
 
     return Ricci
 
@@ -236,9 +274,7 @@ def save_Ricci(ricci, metrics, ricci_file):
     ricci_str = "#".join(ricci_strs)
     result_str += ricci_str
 
-
-
-
-
     with open(ricci_file, 'a+') as f:
         f.write(result_str+'\n')
+
+

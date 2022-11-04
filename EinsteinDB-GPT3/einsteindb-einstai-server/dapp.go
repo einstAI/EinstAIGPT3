@@ -52,35 +52,9 @@ type CompatibleExeceptionMap struct {
 	alarmkey string
 }
 
-type TuneServer struct {
-	ch chan interface{}
+func (dapp *TuneServer) GetCompatibleExeceptionMap() map[string]CompatibleExeceptionMap {
+	return dapp.compatibleExeceptionMap
 
-	//conf object
-	conf tconf.Configer
-
-	//mode
-	mode string
-
-	//status related
-	online bool
-
-	/**config related*/
-	//edb
-
-	dsn       string
-	conn      *sql.DB
-	max_opens int
-	max_idles int
-	ping_cnt  int
-
-	//common field
-	// support_plat map[string]AlarmInterface
-
-	//alarm_meta
-	// alarm_meta *AlarmMeta
-
-	//TODO to be removed
-	alarm_url string
 }
 
 func NewApp() *TuneServer {

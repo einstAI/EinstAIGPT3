@@ -1,4 +1,65 @@
 import pandas as pd
+import numpy as np
+import random
+import time
+import torch
+from math import log
+from torch.nn import init
+
+from DQN import DQN, ENV
+from ImportantConfig import Config
+from JOBParser import DB
+from PGUtils import PGRunner
+from TreeLSTM import SPINN
+from sqlSample import sqlInfo
+
+
+if __name__ == '__main__':
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    db_info = DB("data/DB/", "data/DB/", "data/DB/")
+    pgrunner = PGRunner(db_info)
+    QueryDir = "data/SQL/"
+    sql_list = QueryLoader(QueryDir)
+    train_list, val_list = k_fold(sql_list, 5, 0)
+    DQN = DQN(device)
+    DQN.load_model()
+    for i_episode in range(100):
+        print("Epoch:", i_episode)
+        train_list = resample_sql(train_list)
+        for sql in train_list:
+            #         sql = val_list[i_episode%len(train_list)]
+            pg_cost = sql.getDPlantecy()
+            #         continue
+            env = ENV(sql, db_info, pgrunner, device)
+
+            for t in count():
+                action_list, chosen_action, all_action = DQN.select_action(env, need_random=False)
+
+                left = chosen_action[0]
+                right = chosen_action[1]
+                env.takeAction(left, right)
+
+                reward, done = env.reward()
+                if done:
+                    mrc = max(np.exp(reward * log(1.5)) / pg_cost - 1, 0)
+                    DQN.update_policy(env, mrc)
+                    break
+        DQN.save_model()
+        DQN.update_target()
+        print("Epoch:", i_episode, "Done")
+
+    DQN.save_model()
+
+config = Config()
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+with open(config.schemaFile, "r") as f:
+    createSchema = "".join(f.readlines())
+
+db_info = DB(createSchema)
+
+
 
 def load_dataset(dir_path):
     data = dict()

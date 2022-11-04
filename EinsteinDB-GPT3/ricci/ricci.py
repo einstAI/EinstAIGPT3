@@ -4,16 +4,10 @@ Copyright 2019 The EinsteinDB Authors.
 
 """
 
-
-import os
-import utils
-import configs
-import collections
 import json
-from base import *
-import Ricci
 
-from edb import database
+import utils
+
 
 def get_Ricci(instance):
     """ Get Ricci from instance

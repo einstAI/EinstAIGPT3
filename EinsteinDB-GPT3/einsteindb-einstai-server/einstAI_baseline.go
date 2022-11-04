@@ -3,15 +3,17 @@ package einsteindb
 import (
 	"bytes"
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
-
-	. "git.code.oa.com/gocdb/base/public"
+	_ "time"
 )
 
 const (
-	ER_UNKNOW int = 40001 + iota
+	// ErrNeedRestart is the error that need restart
+	ErrNeedRestart     = errors.New("need restart")
+	ER_UNKNOW      int = 40001 + iota
 	ER_DB_CONNECT
 	ER_INTERNAL
 	ER_CREATE_TASK
