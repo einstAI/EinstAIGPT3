@@ -1,5 +1,4 @@
-package
-
+package einsteindb
 
 import (
 	"encoding/json"
@@ -13,10 +12,9 @@ import (
 	. "git.code.oa.com/gocdb/base/public/prot/tune"
 	. "git.code.oa.com/gocdb/base/public/prot/tune/task"
 	. "git.code.oa.com/gocdb/base/public/prot/tune/task/result"
-
-
-
 )
+
+//CHANGELOG:  We have to use the same task_id to update the task
 
 type ProtCommonRsp struct {
 	Errno int         `json:"errno"`
@@ -53,7 +51,7 @@ func SendJson(w http.ResponseWriter, rsp ProtCommonRsp) interface{} {
 	return json.NewEncoder(w).Encode(rsp)
 }
 
-//=============================== http ===============================
+// =============================== http ===============================
 func (dapp *TuneServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	/*
 		if r.Method == "GET" {
@@ -116,7 +114,7 @@ func getIntField(r *http.Request, field string) (int64, error) {
 	return int64(ret), nil
 }
 
-//create a new task
+// create a new task
 func (dapp *TuneServer) HandleCreateTask(w http.ResponseWriter, r *http.Request) {
 
 	fields := []string{"name", "creator", "task_type", "rw_mode", "run_mode"}

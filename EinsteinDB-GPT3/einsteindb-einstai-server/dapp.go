@@ -1,17 +1,28 @@
-package
+package einsteindb
 
 import (
 	"database/sql"
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/astaxie/beego/orm"
+	_ "github.com/go-sql-driver/mysql"
 )
 
- var (
+const (
+	// ErrNeedRestart is the error that need restart
 	ErrNeedRestart = errors.New("need restart")
 )
 
- func GetConfNonEmptyString(conf tconf.Configer, key string) (string, error) {
+func (dapp *TuneServer) Run() {
+	//run the program dapp
+	dapp.Init()
+	dapp.OnStartApp()
+	dapp.OnStopApp()
+}
+
+func GetConfNonEmptyString(conf tconf.Configer, key string) (string, error) {
 	var err error
 	var value string
 	if value, err = conf.String(key); err != nil {
@@ -23,7 +34,7 @@ import (
 	return value, nil
 }
 
- func GetConfNonEmptyInt(conf tconf.Configer, key string) (int, error) {
+func GetConfNonEmptyInt(conf tconf.Configer, key string) (int, error) {
 	var err error
 	var value int
 	if value, err = conf.Int(key); err != nil {
@@ -35,9 +46,7 @@ import (
 	return value, nil
 }
 
-
-
-//map from old exception feature id to new alarm type level and
+// map from old exception feature id to new alarm type level and
 type CompatibleExeceptionMap struct {
 	level    string
 	alarmkey string
@@ -57,11 +66,12 @@ type TuneServer struct {
 
 	/**config related*/
 	//edb
-	dsn       string  //db配置
-	conn      *sql.edb //连接池对象
-	max_opens int     //最大连接数
-	max_idles int     //最大空闲数
-	ping_cnt  int     //初始化时，最多尝试N次ping，不通则退出
+
+	dsn       string
+	conn      *sql.DB
+	max_opens int
+	max_idles int
+	ping_cnt  int
 
 	//common field
 	// support_plat map[string]AlarmInterface
@@ -75,8 +85,15 @@ type TuneServer struct {
 
 func NewApp() *TuneServer {
 	//new the program dapp
+	return nil
+
+}
+
+func main() {
+	//new the program dapp
 	appNew := &TuneServer{}
-	return appNew
+	appNew.Init()
+	appNew.Run()
 }
 
 func (dapp *TuneServer) GetVersion() string {
@@ -96,7 +113,7 @@ func (dapp *TuneServer) OnStopApp() {
 
 func (dapp *TuneServer) LoadUserConf(conf tconf.Configer, reload bool) error {
 	var err error
-	if !reload { //只能在启动时加载的变量
+	if !reload { //first load
 		if err = dapp.loadDbConf(conf); err != nil {
 			TLog.Errorf("error=%+v LoadDbConf error", err)
 			return err
@@ -108,7 +125,22 @@ func (dapp *TuneServer) LoadUserConf(conf tconf.Configer, reload bool) error {
 	return nil
 }
 
-//below edb connection related
+func (dapp *TuneServer) loadDbConf(conf tconf.Configer) error {
+	var err error
+	if dapp.dsn, err = GetConfNonEmptyString(conf, "db_dsn"); err != nil {
+		return err
+	}
+	if dapp.max_opens, err = GetConfNonEmptyInt(conf, "db_max_opens"); err != nil {
+		return err
+	}
+	if dapp.max_idles, err = GetConfNonEmptyInt(conf, "db_max_idles"); err != nil {
+		return err
+	}
+	if dapp.ping_cnt, err = GetConfNonEmptyInt(conf, "db_ping_cnt"); err != nil {
+		return err
+	}
+	return nil
+}
 func (dapp *TuneServer) GetEventChan() <-chan interface{} {
 	return nil
 }
@@ -142,68 +174,10 @@ func (dapp *TuneServer) CreateConnection() error {
 	return nil
 }
 
-func (dapp *TuneServer) loadDbConf(conf tconf.Configer) error {
-	var err error
-	var user, passwd, edb, ip, port string
-
-	if user, err = GetConfNonEmptyString(conf, "mysql::user"); err != nil {
-		return err
-	}
-	passwd = conf.String("mysql::passwd")
-
-	if ip, err = GetConfNonEmptyString(conf, "mysql::host"); err != nil {
-		return err
-	}
-	if port, err = GetConfNonEmptyString(conf, "mysql::port"); err != nil {
-		return err
-	}
-	if edb, err = GetConfNonEmptyString(conf, "mysql::edb"); err != nil {
-		return err
-	}
-	dapp.dsn = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&loc=Local", user, passwd, ip, port, edb) //本地时区
-	dapp.max_opens = conf.DefaultInt("mysql::max_open", 0)
-	dapp.max_idles = conf.DefaultInt("mysql::max_idle", -1)
-	dapp.ping_cnt = conf.DefaultInt("mysql::ping_cnt", 3)
-
-	TLog.Infof(">>>edb DSN: %s, open: %d, idle: %d, ping: %d",
-		dapp.dsn, dapp.max_opens, dapp.max_idles, dapp.ping_cnt)
+func (dapp *TuneServer) StartServe() error {
 	return nil
 }
 
-/*OPTION:  implement the service handler you need
-  detail in gocdb/base/frame/app_frame.go
-
-  service.Listener: 需要向appframe发送消息时实现
-
-  HttpService:
-    ServeHTTP(w http.ResponseWriter, r *http.Request)
-
-  HaService:
-    BeLeader() error
-    BeFollower() error
-    DoUpgrade() error
-    DoDegrade() error
-
-  GrpcService:
-    RegisterPb(s *grpc.Server) error
-
-  BiClient:
-    GetServer() (server string, retryStart bool)
-    RegisterPacketSender(sender PacketSender)
-    GetPacketHandler() PacketHandler
-
-  BiServer:
-    RegisterPacketSender(sender PacketSender)
-    GetPacketHandler() PacketHandler
-
-  ...
-*/
-
-/*
- below logic added code
-*/
-
-//=============================== ha ===============================
 func (dapp *TuneServer) BeLeader() error {
 	TLog.Info("I'am leader!!!")
 	return dapp.StartServe()
@@ -225,9 +199,12 @@ func (dapp *TuneServer) DoDegrade() error {
 	return ErrNeedRestart
 }
 
-func (dapp *TuneServer) StartServe() error {
-	dapp.online = true //设置online，正式提供服务
-	return nil
+func (dapp *TuneServer) Init() {
+	//init the program dapp
+	dapp.ch = make(chan interface{}, 1000)
+	dapp.mode = "tune"
+	dapp.online = true
+
 }
 
 //end of ha service

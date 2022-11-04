@@ -1,13 +1,26 @@
-package main
+package einsteindb
 
 import (
+	_ "database/sql"
+	_ "errors"
 	"fmt"
 	"time"
-
-	. "git.code.oa.com/gocdb/base/go-sql-driver/mysql"
 )
 
 // type NullTime mysql.NullTime
+//
+// func (nt *NullTime) Scan(value interface{}) error {
+
+func (t *TaskInfo) Get(dapp *TuneServer, task_id int64) error {
+	sql := "select * from tb_task where task_id = ?"
+	return dapp.DBGet(sql, t, task_id)
+}
+
+type NullTime struct {
+	Time  time.Time
+	Valid bool // Valid is true if Time is not NULL
+
+}
 
 type TaskInfo struct {
 	TaskId     int64      `json:task_id`
@@ -44,10 +57,15 @@ type TaskResult struct {
 	Score       float64 `json:score`
 }
 
+func (t *TaskResult) Get(dapp *TuneServer, task_id int64) error {
+	s := "select * from tb_task_result where task_id = ?"
+	return dapp.DBGet(s, t, task_id)
+}
+
 func (t *TaskResult) Insert(dapp *TuneServer, task_id, Ricci_detail, tps, qps, rt, score string) error {
-	sql := "insert into tb_task_result(task_id,Ricci_detail,tps,qps,rt,score) values(%s,'%s',%s,%s,%s,%s)"
-	sql = fmt.Sprintf(sql, task_id, Ricci_detail, tps, qps, rt, score)
-	rID, err := dapp.DBInsert(sql)
+	s := "  (task_id,Ricci_detail,tps,qps,rt,score) values(%s,'%s',%s,%s,%s,%s)"
+	s = fmt.Sprintf(s, task_id, Ricci_detail, tps, qps, rt, score)
+	_, err := dapp.DB.Exec(s)
 	if err == nil {
 		t.ResultId = rID
 	}
@@ -56,9 +74,12 @@ func (t *TaskResult) Insert(dapp *TuneServer, task_id, Ricci_detail, tps, qps, r
 
 func (t *TaskInfo) Insert(dapp *TuneServer) error {
 	sql := "insert into tb_task(name,creator,task_type,rw_mode,run_mode,threads) values(?,?,?,?,?,?)"
-	tId, err := dapp.DBInsert(sql, t.Name, t.Creator, t.TaskType, t.RwMode, "sysbench", t.Threads)
+
+	rID, err := dapp.DBInsert(sql, t.Name, t.Creator, t.TaskType, t.RwMode, t.RunMode, t.Threads)
+
 	if err == nil {
-		t.TaskId = tId
+		t.TaskId = rID
+
 	}
 	return err
 }
@@ -74,15 +95,29 @@ func (t *TaskInfo) Run(dapp *TuneServer) error {
 
 	cmd = fmt.Sprintf(cmd, t.TaskId, 20001, 1001, "10.249.84.215:8080")
 
+	_, err = dapp.Exec(cmd)
+	if err != nil {
+		t.SetErr(dapp, err)
+		return err
+	}
 	err, _, _ = SimpleExecScript("sh", "-c", cmd)
 	// err, s_out, s_err := public.SimpleExecScript("ssh", "root@127.0.0.1", "echo 0")
 	if err != nil {
+
 		t.SetErr(dapp, err)
 		return err
 	}
 	return nil
 }
 
+func (t *TaskInfo) Pause(dapp *TuneServer) error {
+	return dapp.DBUpdate(TB_TASK, "status = ?", "task_id = ?", TaskStatus.Pause, t.TaskId)
+
+}
+
+func (t *TaskInfo) Delete(dapp *TuneServer) error {
+	return dapp.DBUpdate(TB_TASK, "status = ? , end_time = ?", "task_id = ?", TaskStatus.NormalFinish, time.Now(), t.TaskId)
+}
 func (t *TaskInfo) SetErr(dapp *TuneServer, err error) error {
 	return dapp.DBUpdate(TB_TASK, "status = ? , error = ?", "task_id = ?", TaskStatus.Pause, err.Error(), t.TaskId)
 }

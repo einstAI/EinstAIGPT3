@@ -1,11 +1,4 @@
-package einsteindb
 
-import (
-	"database/sql"
-	"fmt"
-	"reflect"
-	"strings"
-)
 
 // Path: EinsteinDB-GPT3/einsteindb-einstai-server/einsteindb.go
 package einsteindb
@@ -38,42 +31,284 @@ type TuneServer struct {
 
 }
 
+func NewTuneServer() *TuneServer {
+	return &TuneServer{}
+}
+
+
+
+
 
 func (dapp *TuneServer) Init() error {
 	_, _ = sql.Open("mysql", "root:123456@tcp(}
 
 	TLog.Infof("edb query sql:%s value:+%v", TB_TASK, values)
 	if rsp, err := dapp.conn.Query(sql, values...); err == nil {
-		return nil, err
+		for i := 0; i < telems.NumField(); i++ {
+			fieldMap[string(telems.Field(i).Tag)] = velems.Field(i).Addr().Interface()
+
+			for rsp.Next() {
+				err := rsp.Scan(scans...)
+				if err != nil {
+					return rst, ErrSelectDb.AddErrMsg("row scan failed %+v", err)
+				}
+				rst = append(rst, velems.Interface())
+			}
+		} else {
+
+			return rst, err
+		}
+	} else {
+		return rst, err
+
 	}
 	return rst, nil
 }
 
-//Update
-//eg: dapp.UpdateData(TB_TASK, "result_id", 3002, t)
-func (dapp *TuneServer) DBUpdate(table, set, condition string, values ...interface{}) error {
-		if rsp.Next() {
-			var count int64
-			err := rsp.Scan(&count)
-			if err != nil {
-				return 0, ErrSelectDb.AddErrMsg("row scan failed %+v", err)
+ func getJsonTag(tName string) string {
+	return fmt.Sprintf(`json:"%s"`, tName)
+
+}
+
+ {
+		for i := 0; i < telems.NumField(); i++ {
+			fieldMap[string(telems.Field(i).Tag)] = velems.Field(i).Addr().Interface()
+
+			for rsp.Next() {
+				err := rsp.Scan(scans...)
+				if err != nil {
+					return rst, ErrSelectDb.AddErrMsg("row scan failed %+v", err)
+				}
+				rst = append(rst, velems.Interface())
 			}
-			return count, nil
+		} else {
+
+			return rst, err
 		}
 	} else {
-		return 0, err
+		return rst, err
+
 	}
-	return 0, nil
+	return rst, nil
 }
+
+ func getJsonTag(tName string) string {
+	return fmt.Sprintf(`json:"%s"`, tName)
+
+}
+
+ {
+		for i := 0; i < telems.NumField(); i++ {
+			fieldMap[string(telems.Field(i).Tag)] = velems.Field(i).Addr().Interface()
+
+			for rsp.Next() {
+				err := rsp.Scan(scans...)
+				if err != nil {
+					return rst, ErrSelectDb.AddErrMsg("row scan failed %+v", err)
+				}
+				rst = append(rst, velems.Interface())
+			}
+		} else {
+
+			return rst, err
+		}
+	} else {
+		return rst, err
+
+	}
+	return rst, nil
+}
+
+ func getJsonTag(tName string) string {
+	return fmt.Sprintf(`json:"%s"`, tName)
+
+}
+
+ {
+		for i := 0; i < telems.NumField(); i++ {
+			fieldMap[string(telems.Field(i).Tag)] = velems.Field(i).Addr().Interface()
+
+			for rsp.Next() {
+				err := rsp.Scan(scans...)
+				if err != nil {
+					return rst, ErrSelectDb.AddErrMsg("row scan failed %+v", err)
+				}
+				rst = append(rst, velems.Interface())
+			}
+		} else {
+
+			return rst, err
+		}
+	} else {
+		return rst, err
+
+	}
+	return rst, nil
+}
+
+
+
+func (dapp *TuneServer) QueryRow(result interface{}, sql string, values ...interface{}) error {
+			if cols, err := rsp.Columns(); err == nil {
+				scans := make([]interface{}, len(cols))
+				for i, name := range cols {
+					scans[i] = fieldMap[getJsonTag(name)]
+				}
+				for rsp.Next() {
+					err := rsp.Scan(scans...)
+					if err != nil {
+						return rst, ErrSelectDb.AddErrMsg("row scan failed %+v", err)
+					}
+					rst = append(rst, velems.Interface())
+				}
+			} else {
+				return rst, err
+			}
+
+
+		}
+
+		if rsp.Next() {
+			err := rsp.Scan(scans...)
+			if err != nil {
+				return rst, ErrSelectDb.AddErrMsg("row scan failed %+v", err)
+			}
+			rst = append(rst, velems.Interface())
+		}
+
+	}
+	return rst, nil
+}
+
+		if cols, err := rsp.Columns(); err == nil {
+
+
+			scans := make([]interface{}, len(cols))
+			for i, name := range cols {
+				scans[i] = fieldMap[getJsonTag(name)]
+			}
+			for rsp.Next() {
+				err := rsp.Scan(scans...)
+				if err != nil {
+					return rst, ErrSelectDb.AddErrMsg("row scan failed %+v", err)
+				}
+				rst = append(rst, velems.Interface())
+			}
+		} else {
+			return rst, err
+		}
+
+	} else {
+		return rst, err
+	}
+	return rst, nil
+}
+
+ //Update
+//eg: dapp.UpdateData(TB_TASK, "result_id", 3002, t)
+func (dapp *TuneServer) DBUpdate(table, set, condition string, values ...interface{}) error {
+	if !strings.Contains(condition, "=") {
+		return ErrUpdateDb.AddErrMsg("not support update full table")
+	}
+	sql := "update %s set %s where %s"
+	sql = fmt.Sprintf(sql, table, set, condition)
+	TLog.Infof("edb update sql:%s value:+%v", sql, values)
+	if _, err := dapp.conn.Exec(sql, values...); err == nil {
+		return nil
+	} else {
+		err := ErrUpdateDb.AddErrMsg("update failed %+v", err)
+		for _, v := range values {
+			err.AddErrMsg("value %+v", v)
+		}
+return err
+	}
+}
+
+ //Insert
+//eg: dapp.InsertData(TB_TASK, t)
+func (dapp *TuneServer) DBInsert(table string, model interface{}) error {
+	velems := reflect.ValueOf(model).Elem()
+	telems := reflect.TypeOf(model).Elem()
+	sql := "insert into %s (%s) values (%s)"
+	var fields, values string
+	for i := 0; i < telems.NumField(); i++ {
+		fields += string(telems.Field(i).Tag) + ","
+		values += "?,"
+	}
+	fields = strings.Trim(fields, ",")
+	values = strings.Trim(values, ",")
+	sql = fmt.Sprintf(sql, table, fields, values)
+	TLog.Infof("edb insert sql:%s value:+%v", sql, velems)
+	if _, err := dapp.conn.Exec(sql, velems); err == nil {
+		return nil
+	} else {
+		err := ErrInsertDb.AddErrMsg("insert failed %+v", err)
+return err
+	}
+}
+
+ //Query
+//eg: dapp.QueryData(TB_TASK, "id=?", &Task{}, 1)
+func (dapp *TuneServer) DBQuery(field, table, condition string, model interface{}, values ...interface{}) ([]interface{}, error) {
+	rst := []interface{}{}
+	sql := "select %s from %s where %s"
+	sql = fmt.Sprintf(sql, field, table, condition)
+	TLog.Infof("edb query sql:%s value:+%v", sql, values)
+	if rsp, err := dapp.conn.Query(sql , values...); err == nil {
+		velems := reflect.ValueOf(model).Elem()
+		telems := reflect.TypeOf(model).Elem()
+		fieldMap := make(map[string]interface{})
+		for i := 0; i < telems.NumField(); i++ {
+			fieldMap[string(telems.Field(i).Tag)] = velems.Field(i).Addr().Interface()
+		}
+		if cols, err := rsp.Columns(); err == nil {
+			scans := make([]interface{}, len(cols))
+			for i, name := range cols {
+				scans[i] = fieldMap[getJsonTag(name)]
+			}
+			for rsp.Next() {
+				err := rsp.Scan(scans...)
+				if err != nil {
+					return rst, ErrSelectDb.AddErrMsg("row scan failed %+v", err)
+				}
+				rst = append(rst, velems.Interface())
+			}
+		} else {
+			return rst, err
+		}
+	} else {
+		return rst, err
+
+	}
+	return rst, nil
+}
+
+
+
 
 
 const (
 	TB_TASK_RESULT = "tb_task_result"
 	TB_TASK        = "tb_task"
 	TB_TASK_LOG    = "tb_task_log"
+	TB_TASK_PARAM  = "tb_task_param"
+	TB_TASK_RESULT_PARAM = "tb_task_result_param"
+
 )
 
 
+
+func (dapp *TuneServer) QueryTaskResultByTaskId(taskId int64) ([]*TaskResult, error) {
+	rst := []*TaskResult{}
+	if rsp, err := dapp.DBQueryOne("*", TB_TASK_RESULT, "task_id=?", &TaskResult{}, taskId); err == nil {
+		if rsp != nil {
+			rst = append(rst, rsp.(*TaskResult))
+		}
+	} else {
+		return rst, err
+	}
+	return rst, nil
+}
 
 
 func (dapp *TuneServer) QueryByIndexs(table, field string, ids []int64, model interface{}) ([]interface{}, error) {
@@ -82,7 +317,12 @@ func (dapp *TuneServer) QueryByIndexs(table, field string, ids []int64, model in
 	return dapp.DBQuery("*", table, sql, model, ids...)
 
 
+
+
 }
+
+
+
 
 
 func getJsonTag(tName string) string {
@@ -123,6 +363,10 @@ func (dapp *TuneServer) Query2Struct(sql string, model interface{}, values ...in
 	return rst, nil
 }
 
+//Query
+//eg: dapp.QueryData(TB_TASK, "id", 3002, &Task{})
+
+
 //Update
 //eg: dapp.UpdateData(TB_TASK, "result_id", 3002, t)
 func (dapp *TuneServer) DBUpdate(table, set, condition string, values ...interface{}) error {
@@ -135,34 +379,49 @@ func (dapp *TuneServer) DBUpdate(table, set, condition string, values ...interfa
 	if _, err := dapp.conn.Exec(sql, values...); err == nil {
 		return nil
 	} else {
-		err := ErrUpdateDb.AddErrMsg("update failed +%v", err)
-		if err != nil {
-			TLog.Error(err)
-		}
-		return err
+		err := ErrUpdateDb.AddErrMsg("update failed %+v", err)
+return err
 	}
+}
 
+//Query
+//eg: dapp.QueryData(TB_TASK, "id", 3002, &Task{})
+func (dapp *TuneServer) DBQueryOne(column, table, condition string, model interface{}, values ...interface{}) (interface{}, error) {
+	rst, err := dapp.DBQuery(column, table, condition, model, values...)
+	if err != nil {
+		return nil, err
+	}
+	if len(rst) > 0 {
+		return rst[0], nil
+	}
+	return nil, nil
 }
 
 func (dapp *TuneServer) DBInsert(sql string, values ...interface{}) (int64, error) {
 	TLog.Infof("edb insert sql:%s value:+%v", sql, values)
 	if rst, err := dapp.conn.Exec(sql, values...); err == nil {
 		id, err := rst.LastInsertId()
-		return id, err
-	} else {
-		err = ErrInsertDb.AddErrMsg("insert failed +%v", err)
 		if err != nil {
-			TLog.Error(err)
+			return 0, ErrInsertDb.AddErrMsg("insert failed %+v", err)
 		}
-		return -1, err
+
+		return id, nil
+
+	} else {
+		return 0, ErrInsertDb.AddErrMsg("insert failed %+v", err)
 	}
+
 }
 
-func (dapp *TuneServer) DBQuery(column, table, condition string, model interface{}, values ...interface{}) ([]interface{}, error) {
-	sql := "select %s from %s where %s "
-	sql = fmt.Sprintf(sql, column, table, condition)
-	return dapp.Query2Struct(sql, model, values...)
-}
+
+
+
+//Adjoint model should use pointer and return slice is't pointer
+//eg: dapp.QueryData(TB_TASK, "id", 3002, &Task{})
+
+
+
+
 
 //QueryByIndex return Pointer
 //eg: t := &TaskResult{}
@@ -179,6 +438,8 @@ func (dapp *TuneServer) QueryByIndex(table, field string, id int64, model interf
 	}
 	return err
 }
+
+
 
 
 func (dapp *TuneServer) DBDelete(table, condition string, values ...interface{}) error {
@@ -208,4 +469,21 @@ func (dapp *TuneServer) DBQueryCount(table, condition string, values ...interfac
 	sql := "select count(*) from %s where %s"
 	sql = fmt.Sprintf(sql, table, condition)
 	return dapp.QueryCount(sql, values...)
+}
+
+
+func (dapp *TuneServer) QueryCount(sql string, values ...interface{}) (int64, error) {
+	TLog.Infof("edb query count sql:%s value:+%v", sql, values)
+	if rsp, err := dapp.conn.Query(sql, values...); err == nil {
+		if rsp.Next() {
+			var count int64
+			if err := rsp.Scan(&count); err != nil {
+				return 0, ErrSelectDb.AddErrMsg("row scan failed %+v", err)
+			}
+			return count, nil
+		}
+		return 0, ErrSelectDb.AddErrMsg("no data")
+	} else {
+		return 0, ErrSelectDb.AddErrMsg("query failed %+v", err)
+	}
 }
