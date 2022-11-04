@@ -1,31 +1,22 @@
-# Copyright 2018-2021 Tsinghua DBGroup
-#
-# Licensed under the Apache License, Version 2.0 (the "License"): you may
-# not use this file except in compliance with the License. You may obtain
-# a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
+# Copyright 2022 (c) EINSTAI Inc.
+# Path: EINSTAI/OUCausetFlowProcess/CostTraining.py
+
 
 from PGUtils import pgrunner
+from PGUtils import db_info
 from sqlSample import sqlInfo
 import numpy as np
 from itertools import count
 from math import log
 import random
 import time
-from DQN import DQN,ENV
+from OrnsteinUhlenbeckProcessFlow import DQN,ENV
 from TreeLSTM import SPINN
-from JOBParser import DB
+from BerolinaSQLGenDQNWithBoltzmannNormalizer import DB
 import copy
 import torch
 from torch.nn import init
-from ImportantConfig import Config
+from tconfig import Config
 
 config = Config()
 
@@ -42,9 +33,16 @@ featureSize = 128
 policy_net = SPINN(n_classes = 1, size = featureSize, n_words = 100,mask_size= 40*41,device=device).to(device)
 target_net = SPINN(n_classes = 1, size = featureSize, n_words = 100,mask_size= 40*41,device=device).to(device)
 
-policy_net.load_state_dict(torch.load("CostTraining.pth"))
+for name, param in policy_net.named_parameters():
+    print(name,param.shape)
+    if len(param.shape)==2:
+        init.xavier_normal(param)
+    else:
+        init.uniform(param)
+
 target_net.load_state_dict(policy_net.state_dict())
 target_net.eval()
+
 
 DQN = DQN(policy_net,target_net,db_info,pgrunner,device)
 
@@ -66,6 +64,7 @@ def QueryLoader(QueryDir):
     def file_name(file_dir):
         import os
         L = []
+        print(file_dir)
         for root, dirs, files in os.walk(file_dir):
             for file in files:
                 if os.path.splitext(file)[1] == '.sql':
@@ -85,9 +84,14 @@ def resample_sql(sql_list):
     reward_sum = 0
     rewardsP = []
     mes = 0
+    DP_cost = 0.0
+    my_cost = 0.0
+    s_rewards = 0
+    lr = len(sql_list)
     for sql in sql_list:
         #         sql = val_list[i_episode%len(train_list)]
         pg_cost = sql.getDPlantecy()
+        DP_cost += pg_cost
         #         continue
         env = ENV(sql,db_info,pgrunner,device)
 
@@ -100,9 +104,11 @@ def resample_sql(sql_list):
 
             reward, done = env.reward_new()
             if done:
-                mrc = max(reward/pg_cost-1,0)
-                rewardsP.append(reward/pg_cost)
-                mes += log(reward)-log(pg_cost)
+                mrc = max(reward-1,0)
+                rewardsP.append(reward)
+                mes += log(reward)
+                s_rewards += reward
+                my_cost += reward*pg_cost
                 rewards.append((mrc,sql))
                 reward_sum += mrc
                 break
@@ -117,15 +123,64 @@ def resample_sql(sql_list):
             if rd<0:
                 res_sql.append(rewards[ts][1])
                 break
+    from math import e
+    print("MRC",s_rewards/lr,"GMRL",e**(mes/lr),"SMRC",my_cost/DP_cost)
     return res_sql+sql_list
 def train(trainSet,validateSet):
+    baselines = []
+    for sqlt in trainSet:
+            # break
+            # print(sqlt)
+            env = ENV(sqlt,db_info,pgrunner,device)
+            pg_cost = sqlt.getDPlantecy()
+            sqlt.alias_cnt = len(env.sel.from_table_list)
+            previous_state_list = []
+            action_this_epi = []
+            if (len(env.sel.from_table_list)<3) or not env.sel.baseline.left_deep:
+                baselines.append(-1)
+                continue
+            for t in count():
+                action_list, chosen_action,all_action = DQN.select_action(env,need_random=True)
+                value_now = 0
+                next_value = torch.min(action_list).detach()
+                env_now = copy.deepcopy(env)
+                chosen_action = env.sel.baseline.result_order[t]
+                
+                left = chosen_action[0]
+                right = chosen_action[1]
+                env.takeAction(left,right)
+                action_this_epi.append((left,right))
 
+                reward, done = env.reward_new()
+                previous_state_list.append((value_now,next_value.view(-1,1),env_now))
+                if done:
+                    sqlt.updateBestOrder(reward,action_this_epi)
+                    baselines.append(reward)
+                    reward = log(1+reward)
+                    if reward>config.maxR:
+                        reward = config.maxR
+                        break
+                    next_value = 0
+                    # break
+                reward = torch.tensor([reward], device=device, dtype = torch.float32).view(-1,1)
+                expected_state_action_values = (next_value ) + reward.detach()
+                final_state_value = (next_value ) + reward.detach()
+                if done:
+                    cnt = 0
+
+                    DQN.Memory.push(env,expected_state_action_values,final_state_value)
+                    for pair_s_v in previous_state_list[:0:-1]:
+                        DQN.Memory.push(pair_s_v[2],expected_state_action_values,final_state_value)
+                if done:
+                    loss = DQN.optimize_model()
+                    break
     trainSet_temp = trainSet
     losses = []
     startTime = time.time()
     print_every = 20
     TARGET_UPDATE = 3
     for i_episode in range(0,10000):
+        # print(i_episode)
         if i_episode % 200 == 100:
             trainSet = resample_sql(trainSet_temp)
         #     sql = random.sample(train_list_back,1)[0][0]
@@ -155,36 +210,25 @@ def train(trainSet,validateSet):
             action_this_epi.append((left,right))
 
             reward, done = env.reward_new()
-            reward = torch.tensor([reward], device=device, dtype = torch.float32).view(-1,1)
-
             previous_state_list.append((value_now,next_value.view(-1,1),env_now))
             if done:
-
-                #             print("done")
+                sqlt.updateBestOrder(reward,action_this_epi)
+                reward  = log(reward+1)
+                if reward>config.maxR:
+                    reward = config.maxR
                 next_value = 0
-                sqlt.updateBestOrder(reward.item(),action_this_epi)
-
+            reward = torch.tensor([reward], device=device, dtype = torch.float32).view(-1,1)
             expected_state_action_values = (next_value ) + reward.detach()
             final_state_value = (next_value ) + reward.detach()
-
             if done:
                 cnt = 0
+
                 DQN.Memory.push(env,expected_state_action_values,final_state_value)
                 for pair_s_v in previous_state_list[:0:-1]:
-                    cnt += 1
-                    if expected_state_action_values > pair_s_v[1]:
-                        expected_state_action_values = pair_s_v[1]
-                    #                 for idx in range(cnt):
-                    expected_state_action_values = expected_state_action_values
                     DQN.Memory.push(pair_s_v[2],expected_state_action_values,final_state_value)
-                #                 break
                 loss = 0
-
             if done:
                 # break
-                loss = DQN.optimize_model()
-                loss = DQN.optimize_model()
-                loss = DQN.optimize_model()
                 loss = DQN.optimize_model()
                 losses.append(loss)
                 if ((i_episode + 1)%print_every==0):
@@ -196,12 +240,15 @@ def train(trainSet,validateSet):
                 break
         if i_episode % TARGET_UPDATE == 0:
             target_net.load_state_dict(policy_net.state_dict())
-    torch.save(policy_net.cpu().state_dict(), 'LatencyTuning.pth')
+    torch.save(policy_net.cpu().state_dict(), 'CostTraining.pth')
+    # policy_net = policy_net.cuda()
 
 if __name__=='__main__':
     sytheticQueries = QueryLoader(QueryDir=config.sytheticDir)
-    # print(sytheticQueries)
+    print(len(sytheticQueries))
     JOBQueries = QueryLoader(QueryDir=config.JOBDir)
+    print(len(JOBQueries))
     Q4,Q1 = k_fold(JOBQueries,10,1)
+    print(len(Q4),len(Q1))
     # print(Q4,Q1)
     train(Q4+sytheticQueries,Q1)

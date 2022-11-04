@@ -12,9 +12,63 @@ import pickle
 import numpy as np
 import torch.nn as nn
 from torch.nn import init, Parameter
+
 import torch.nn.functional as F
 import torch.optim as optimizer
+
 from torch.autograd import Variable
+from torch.distributions import Normal
+
+from einstAIActor import einstAIActor
+from einstAICritic import einstAICritic
+
+class DDPG(object):
+    def __init__(self, state_dim, action_dim, action_bound, learning_rate, tau, gamma, batch_size, device):
+        self.state_dim = state_dim
+        self.action_dim = action_dim
+        self.action_bound = action_bound
+        self.learning_rate = learning_rate
+        self.tau = tau
+        self.gamma = gamma
+        self.batch_size = batch_size
+        self.device = device
+
+        self.einstAIActor = einstAIActor(self.state_dim, self.action_dim, self.action_bound, self.device).to(self.device)
+        self.einstAICritic = einstAICritic(self.state_dim, self.action_dim, self.device).to(self.device)
+
+        self.einstAIActor_target = einstAIActor(self.state_dim, self.action_dim, self.action_bound, self.device).to(self.device)
+        self.einstAICritic_target = einstAICritic(self.state_dim, self.action_dim, self.device).to(self.device)
+
+        self.einstAIActor_target.load_state_dict(self.einstAIActor.state_dict())
+        self.einstAICritic_target.load_state_dict(self.einstAICritic.state_dict())
+
+        self.einstAIActor_optimizer = optimizer.Adam(self.einstAIActor.parameters(), lr=self.learning_rate)
+        self.einstAICritic_optimizer = optimizer.Adam(self.einstAICritic.parameters(), lr=self.learning_rate)
+
+    def choose_action(self, state):
+        state = torch.FloatTensor(state.reshape(1, -1)).to(self.device)
+        return self.einstAIActor(state).cpu().data.numpy().flatten()
+
+    def learn(self, state, action, reward, next_state, done):
+        state = torch.FloatTensor(state.reshape(1, -1)).to(self.device)
+        next_state = torch.FloatTensor(next_state.reshape(1, -1)).to(self.device)
+        action = torch.FloatTensor(action.reshape(1, -1)).to(self.device)
+        reward = torch.FloatTensor(reward.reshape(1, -1)).to(self.device)
+        done = torch.FloatTensor(done.reshape(1, -1)).to(self.device)
+
+        next_action = self.einstAIActor_target(next_state)
+        target_Q = self.einstAICritic_target(next_state, next_action)
+        target_Q = reward + (1 - done) * self.gamma * target_Q
+
+        current_Q = self.einstAICritic(state, action)
+
+         # the loss of the critic
+        einstAICritic_loss = F.mse_loss(current_Q, target_Q)
+        self.einstAICritic_optimizer.zero_grad()
+        einstAICritic_loss.backward()
+        self.einstAICritic_optimizer.step()
+        
+        
 sys.path.append('../')
 
 from OUProcess import OUProcess

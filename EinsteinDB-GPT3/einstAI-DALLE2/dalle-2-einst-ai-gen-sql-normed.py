@@ -17,7 +17,7 @@ from past.builtins import xrange
 import utils
 from AML.Overall.bayesian.factorized_sampler.factorized_sampler import main
 from AML.Synthetic.naru import models
-from EINSTAI.RTOS.CostTraining import config
+from EINSTAI.OUCausetFlowProcess.CostTraining import config
 
 sys.path.append('../')
 

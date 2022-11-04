@@ -15,7 +15,7 @@ import torch
 from torch.nn import init
 import torchfold
 import torch.nn as nn
-from ImportantConfig import Config
+from tconfig import Config
 
 config = Config()
 

@@ -15,7 +15,7 @@
 import sys
 sys.path.append(".")
 
-from JOBParser import TargetTable,FromTable,Comparison
+from BerolinaSQLGenDQNWithBoltzmannNormalizer import TargetTable,FromTable,Comparison
 max_column_in_table = 15
 import torch
 import torch
@@ -24,7 +24,7 @@ from itertools import count
 import numpy as np
 from PGUtils import pgrunner
 
-from ImportantConfig import Config
+from tconfig import Config
 
 config = Config()
 
@@ -142,11 +142,32 @@ class BaselineAlias:
             self.hashAdd(rows00['Join Filter'])
 tlm = {}
 
+
+def parse_dict(sql):
+    #parse a sql to a dict
+    sql = sql.strip()
+    sql = sql.replace(' ',' ') # replace all space to one space
+    sql = sql.replace('(',' ( ')
+    sql = sql.replace(')',' ) ')
+
+##CHANGELOG:
+## 1. add support for 'select * from table1, table2 where table1.id = table2.id'
+## 2. add support for 'select * from table1, table2 where table1.id = table2.id and table1.id = 1'
+## 3. add support for 'select * from table1, table2 where table1.id = table2.id and table1.id = 1 and table2.id = 2'
 class JoinTree:
-    def __init__(self,sqlt,db_info,max_column_in_table = 15,max_alias = 40,extent_sql = True):
-        from psqlparse import parse_dict
-        global tlm
-        tlm = {}
+    def __init__(self, sqlt, db_info, max_column_in_table = 15, max_alias = 40, extent_sql = True, psqlparse=None):
+        self.sqlt = sqlt
+       #alias = set()
+        self.alias = set()
+        self.alias2table = {}
+        self.sqlt = sqlt
+        self.db_info = db_info
+        self.max_column_in_table = max_column_in_table
+        self.max_alias = max_alias
+        self.extent_sql = extent_sql
+        self.psqlparse = psqlparse
+        global tlm, alias, table
+       tlm = {}
         # print(sqlt.sql)
         self.sqlt = sqlt
         self.sql = self.sqlt.sql
@@ -187,7 +208,28 @@ class JoinTree:
         for aliasname in self.aliasnames_root_set:
             self.table_fea_set[aliasname] = [0,0.0]*max_column_in_table+[1.0]
 
-        ##提取所有的Join和filter
+  #     self.aliasnames_set = set([x.getAliasName() for x in self.from_table_list])
+        self.aliasnames_set = set([x.getAliasName() for x in self.from_table_list])
+        self.aliasnames_join_set = set()
+        self.aliasnames_fa = {}
+        self.left_son = {}
+        self.right_son = {}
+        self.total = 0
+        self.left_aliasname = {}
+        self.right_aliasname = {}
+
+        self.aliasnames_join_set = set()
+        self.aliasnames_fa = {}
+        self.left_son = {}
+        self.right_son = {}
+        self.total = 0
+        self.left_aliasname = {}
+        self.right_aliasname = {}
+        self.aliasnames_join_set = set()
+
+
+    def getAliasName(self, id):
+        return self.id2aliasname[id]
         self.join_candidate = set()
         self.join_matrix=[]
         for aliasname in self.aliasnames_root_set:
@@ -237,7 +279,7 @@ class JoinTree:
 
         for aliasname in self.aliasnames_root_set:
             self.table_fea_set[aliasname] = torch.tensor(self.table_fea_set[aliasname],device = device).reshape(1,-1).detach()
-            self.aliasnames_set[aliasname] = set([aliasname])
+            self.aliasnames_set[aliasname] = {aliasname}
             for y in self.join_list[aliasname]:
                 if aliasname not in self.aliasnames_join_set:
                     self.aliasnames_join_set[aliasname] = set()
@@ -587,6 +629,20 @@ class sqlInfo:
         if self.bestOrder == None or self.bestLatency > latency:
             self.bestLatency = latency
             self.bestOrder = order
+
+    def genSQL(self, db_info):
+        # print(self.sql)
+        sqlt = sqlTree(self.sql,db_info)
+        return sqlt
+    def getBestCost(self,):
+        return self.bestCost
+    def updateBestCost(self,cost,order):
+        if self.bestOrder == None or self.bestCost > cost:
+            self.bestCost = cost
+            self.bestOrder = order
+    def getBestLatency(self,):
+        return self.bestLatency
+
 
 
 

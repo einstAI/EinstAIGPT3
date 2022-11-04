@@ -18,13 +18,13 @@ from itertools import count
 from math import log
 import random
 import time
-from DQN import DQN,ENV
+from OrnsteinUhlenbeckProcessFlow import DQN,ENV
 from TreeLSTM import SPINN
-from JOBParser import DB
+from BerolinaSQLGenDQNWithBoltzmannNormalizer import DB
 import copy
 import torch
 from torch.nn import init
-from ImportantConfig import Config
+from tconfig import Config
 
 config = Config()
 

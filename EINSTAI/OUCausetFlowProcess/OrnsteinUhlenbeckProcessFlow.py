@@ -1,16 +1,8 @@
-# Copyright 2018-2021 Tsinghua DBGroup
-#
-# Licensed under the Apache License, Version 2.0 (the "License"): you may
-# not use this file except in compliance with the License. You may obtain
-# a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
+# Copyright (c) 2022 EINSTAI Inc.
+# Path: EINSTAI/OUCausetFlowProcess/OrnsteinUhlenbeckProcessFlow.py
+# Compare this snippet from EINSTAI/OUCausetFlowProcess/CostTraining.py:
+
+
 import math
 import random
 import torchfold
@@ -25,19 +17,46 @@ import numpy as np
 from math import log
 from itertools import count
 from PGUtils import pgrunner
+from PGUtils import db_info
+from sqlSample import sqlInfo
+import json
+import os
+import sys
 
-from ImportantConfig import Config
+from torch.nn import init
+
+def init_weights(m):
+    if type(m) == nn.Linear:
+        init.xavier_normal(m.weight)
+        m.bias.data.fill_(0.01)
+
+def init_weights2(m):
+    if type(m) == nn.Linear:
+        init.xavier_normal(m.weight)
+        m.bias.data.fill_(0.01)
+
+
+from tconfig import Config
 # def Floss(value,targetvalue):
 #     with torch.no_grad():
 #         disl1 = (torch.abs(value-targetvalue)<1).float()
 #     return torch.mean((1-disl1)*torch.abs(value-targetvalue)*(targetvalue+1)+disl1*(value-targetvalue)*(value-targetvalue))
 def Floss(value,targetvalue):
+
     with torch.no_grad():
         disl1 = (torch.abs(value-targetvalue)<0.15).float()
     with torch.no_grad():
         disl2 = 1-((value>targetvalue).float()*(targetvalue>config.maxR-0.1).float())
     
     return torch.mean(disl2*((1-disl1)*torch.abs(value-targetvalue)*(targetvalue+1)+disl1*(value-targetvalue)*(value-targetvalue)))
+
+def Floss2(value,targetvalue):
+    return torch.mean((value-targetvalue)*(value-targetvalue))
+
+def Floss3(value,targetvalue):
+    return torch.mean(torch.abs(value-targetvalue))
+
+
 config = Config()
 class ENV(object):
     def __init__(self,sql,db_info,pgrunner,device,run_mode = False):
@@ -321,4 +340,50 @@ class DQN:
             return loss.item()
         return None
 
-        
+
+    def train(self,train_list, val_list, tryTimes = 1):
+        self.policy_net.train()
+        self.target_net.train()
+        for i_episode in range(tryTimes):
+            print('episode',i_episode)
+            self.train_one_episode(train_list)
+            self.validate(val_list)
+            if i_episode % self.TARGET_UPDATE == 0:
+                self.target_net.load_state_dict(self.policy_net.state_dict())
+        self.policy_net.eval()
+        self.target_net.eval()
+        return self.validate(val_list)
+
+    def train_one_episode(self,train_list):
+        rewards = []
+        prt = []
+        mes = 0
+        train_this_time = {}
+        DP_cost = 0.0
+        my_cost = 0.0
+        allRes = {}
+        import time
+        startTime = time.time()
+        for sql in train_list:
+            pg_cost = sql.getDPlantecy()
+            DP_cost += pg_cost
+            env = ENV(sql,self.db_info,pgrunner,self.device)
+            if (len(env.sel.from_table_list)<3):
+
+                continue
+            for t in count():
+                action_list, chosen_action,all_action = self.select_action(env)
+                left = chosen_action[0]
+                right = chosen_action[1]
+                env.takeAction(left,right)
+                reward, done = env.reward_new()
+                self.Memory.push(env,all_action,reward)
+                if done:
+                    train_this_time[sql.filename] = reward
+                    allRes[sql.filename] = (pg_cost,reward*pg_cost)
+                    rewards.append(reward)
+                    mes = mes + log(reward)
+                    my_cost += reward*pg_cost
+                    break
+
+        self.optimize_model()

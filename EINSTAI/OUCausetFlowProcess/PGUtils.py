@@ -1,20 +1,41 @@
-# Copyright 2018-2021 Tsinghua DBGroup
-#
-# Licensed under the Apache License, Version 2.0 (the "License"): you may
-# not use this file except in compliance with the License. You may obtain
-# a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
-import psycopg2
+##Copyright (c) 2022, EinstAI Inc All rights reserved.
+##This source code is licensed under the BSD-style license found in the
+##LICENSE file in the root directory of this source tree. An additional grant
+##of patent rights can be found in the PATENTS file in the same directory.
+
+
+import os
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+
 import json
 from math import log
-from ImportantConfig import Config
+from collections import namedtuple
+from itertools import count
+from tconfig import Config
+from AML.Synthetic.naru import ddpg
+from AML.Synthetic.naru import replay_memory
+
+Transition = namedtuple('Transition', ('soliton_state', 'causet_action', 'next_state',  'reward', 'terminate'))
+
+class BerolinaSQLGenDQNWithBoltzmannNormalizer(nn.Module):
+    def __init__(self, input_dim, output_dim):
+        super(BerolinaSQLGenDQNWithBoltzmannNormalizer, self).__init__()
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.fc1 = nn.Linear(input_dim, 128)
+        self.fc2 = nn.Linear(128, 128)
+        self.fc3 = nn.Linear(128, output_dim)
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        x = self.softmax(x)
+        return x
 class PGConfig:
     def __init__(self):
         self.keepExecutedPlan =True
@@ -244,3 +265,66 @@ from itertools import count
 from pathlib import Path
 
 pgrunner = PGGRunner(config.dbName,config.userName,config.password,config.ip,config.port,isCostTraining=config.isCostTraining,latencyRecord = config.latencyRecord,latencyRecordFile = latencyRecordFile)
+
+
+def db_info():
+    # we need to connect to the database to get the information
+    # about the tables and columns
+    # we will use the information schema
+    # https://www.postgresql.org/docs/9.1/infoschema.html
+    # https://www.postgresql.org/docs/9.1/infoschema-columns.html
+
+    # we will use the information schema for now, but we can also
+    # use the pg_catalog schema
+    """
+    :param
+
+    :return:
+
+    """
+
+    global pgrunner
+    # we need to connect to the database to get the information
+    # about the tables and columns
+
+
+
+    #transform the table name to lower case
+    pgrunner.cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';")
+    tables = pgrunner.cur.fetchall()
+    tables = [table[0].lower() for table in tables]
+    # print(tables)
+    #transform the column name to lower case
+    pgrunner.cur.execute("SELECT table_name,column_name FROM information_schema.columns WHERE table_schema = 'public';")
+    columns = pgrunner.cur.fetchall()
+    columns = [(column[0].lower(),column[1].lower()) for column in columns]
+    # print(columns)
+
+
+    #now we need to get the foreign keys
+    pgrunner.cur.execute("SELECT conrelid::regclass, confrelid::regclass, conkey, confkey FROM pg_constraint WHERE contype = 'f';")
+    foreign_keys = pgrunner.cur.fetchall()
+    foreign_keys = [(fk[0].lower(),fk[1].lower(),fk[2],fk[3]) for fk in foreign_keys]
+    # print(foreign_keys)
+    #now we need to get the primary keys
+
+    pgrunner.cur.execute("SELECT conrelid::regclass, conkey FROM pg_constraint WHERE contype = 'p';")
+    #remember to transform the table name to lower case
+    primary_keys = pgrunner.cur.fetchall()
+    primary_keys = [(pk[0].lower(),pk[1]) for pk in primary_keys]
+    # print(primary_keys)
+    #now we need to get the unique keys
+    pgrunner.cur.execute("SELECT conrelid::regclass, conkey FROM pg_constraint WHERE contype = 'u';")
+    #remember to transform the table name to lower case
+
+    tables = [table[0].lower() for table in tables]
+    # print(tables)
+    #transform the column name to lower case
+    pgrunner.cur.execute("SELECT table_name,column_name FROM information_schema.columns WHERE table_schema = 'public';")
+    columns = pgrunner.cur.fetchall()
+    columns = [(column[0].lower(),column[1].lower()) for column in columns]
+    # print(columns)
+
+
+
+

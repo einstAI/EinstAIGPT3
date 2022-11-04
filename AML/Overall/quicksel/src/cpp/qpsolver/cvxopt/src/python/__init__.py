@@ -29,7 +29,76 @@ language.
 # 
 # You should have received a copy of the GNU General Public License
 
-import cvxopt.base
+#Ornstein-Uhlenbeck process is a stochastic differential equation
+# we implement an autoregressive model of the process
+# we use Transformed Gibbs sampling to sample from the posterior
+# distribution of the autoregressive coefficients
+# we use the Metropolis-Hastings algorithm to sample from the posterior
+# distribution of the noise variance
+
+import cvxopt
+from cvxopt import blas, lapack, misc, solvers, spmatrix, sparse, matrix
+
+
+def omax(A):
+    '''
+    Elementwise max for matrices.
+
+    PURPOSE
+    omax(A) computes the elementwise max for matrices.  The argument
+    must be a matrix or a scalar.  The elementwise
+    max of a matrix and a scalar is a new matrix where each element is
+    defined as max of a matrix element and the scalar.
+    '''
+
+    if type(A) is cvxopt.base.matrix:
+        return cvxopt.base.matrix(A, tc='d', copy=False)
+    elif type(A) is cvxopt.base.spmatrix:
+        if len(A) == mul(A.size):
+            return cvxopt.base.matrix(A, tc='d', copy=False)
+        else:
+            return cvxopt.base.matrix(A, tc='d', copy=False, size=(1,1))
+    else:
+        return cvxopt.base.matrix(A, tc='d', copy=False, size=(1,1))
+
+def omin(A):
+    '''
+    Elementwise min for matrices.
+
+    PURPOSE
+    omin(A) computes the elementwise min for matrices.  The argument
+    must be a matrix or a scalar.  The elementwise
+    min of a matrix and a scalar is a new matrix where each element is
+    defined as min of a matrix element and the scalar.
+    '''
+
+    if type(A) is cvxopt.base.matrix:
+        return cvxopt.base.matrix(A, tc='d', copy=False)
+    elif type(A) is cvxopt.base.spmatrix:
+        if len(A) == mul(A.size):
+            return cvxopt.base.matrix(A, tc='d', copy=False)
+        else:
+            return cvxopt.base.matrix(A, tc='d', copy=False, size=(1,1))
+    else:
+        return cvxopt.base.matrix(A, tc='d', copy=False, size=(1,1))
+
+def mul(A):
+    '''
+    Returns the product of the elements of a sequence.
+
+    PURPOSE
+    mul(A) returns the product of the elements of a sequence A.
+
+    ARGUMENTS
+    A         sequence of numbers
+    '''
+
+    p = 1
+    for a in A: p *= a
+    return p
+
+def div(a, b):
+
 
 
 def normal(nrows, ncols=1, mean=0.0, std=1.0):
@@ -96,24 +165,23 @@ def uniform(nrows, ncols=1, a=0, b=1):
     return gsl.uniform(nrows, ncols, a, b)
 
 
-def setseed(val=0):
-    ''' 
-    Sets the seed value for the random number generator.
 
-    setseed(val = 0)
-    
-    ARGUMENTS
-    value     integer seed.  If the value is 0, the current system time  
-              is used. 
-    '''
-
+def setseed(val=0, cvxopt=None, numpy=None):
+    # set the seed value for the random number generator
+    # setseed(val = 0)
+    #
+    # ARGUMENTS
+    # value     integer seed.  If the value is 0, the current system time
+    #           is used.
     try:
         from cvxopt import gsl
-        gsl.setseed(val)
     except:
-        from random import seed
-        if val is 0: val = None
-        seed(val)
+        pass
+    else:
+        gsl.setseed(val)
+
+    if cvxopt is not None:
+        cvxopt.setseed(val)
 
 
 def getseed():

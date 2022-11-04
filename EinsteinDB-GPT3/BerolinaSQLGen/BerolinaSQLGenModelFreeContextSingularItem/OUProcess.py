@@ -7,6 +7,8 @@ Ornstein–Uhlenbeck process
 import numpy as np
 
 
+
+
 # from https://github.com/songrotek/DDPG/blob/master/ou_noise.py
 class OUProcess(object):
 
@@ -39,3 +41,8 @@ if __name__ == '__main__':
 
     plt.plot(states)
     plt.show()
+
+
+
+
+
