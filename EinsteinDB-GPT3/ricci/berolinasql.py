@@ -10,18 +10,25 @@ import math
 import datetime
 import json
 import threading
-import EinsteinMySQLdb
+import logging
+from fileinput import filename
+
+import ford as ford
 import numpy as np
+import self
+from fontTools.misc.py23 import xrange
+
 import configs
 import utils
-import Ricci
-import requests
-import psutil
+
+import pandas as pd
 from base import *
+
+from AML.Synthetic.get_result import method
 from edb import database
 from utils import *
 
-logger = cdb_logger
+logger = logging.getLogger(__name__)
 
 
 
@@ -29,6 +36,268 @@ class Status(object):
     OK = 'OK'
     FAIL = 'FAIL'
     RETRY = 'RETRY'
+
+
+def os_quit(RUN_SYSYBENCH_FAILED):
+    pass
+
+
+class Err:
+    # 0-1000
+    MYSQL_CONNECT_ERR = 1
+    MYSQL_QUERY_ERR = 2
+    MYSQL_INSERT_ERR = 3
+    MYSQL_UPDATE_ERR = 4
+    MYSQL_DELETE_ERR = 5
+    MYSQL_CLOSE_ERR = 6
+    MYSQL_COMMIT_ERR = 7
+    MYSQL_ROLLBACK_ERR = 8
+    MYSQL_CURSOR_ERR = 9
+    MYSQL_FETCH_ERR = 10
+    MYSQL_FETCHALL_ERR = 11
+    MYSQL_FETCHONE_ERR = 12
+    MYSQL_FETCHMANY_ERR = 13
+    MYSQL_EXECUTEMANY_ERR = 14
+    MYSQL_EXECUTE_ERR = 15
+    MYSQL_FETCHDESC_ERR = 16
+    MYSQL_FETCHDESCALL_ERR = 17
+    MYSQL_FETCHDESCONE_ERR = 18
+    MYSQL_FETCHDESCMANY_ERR = 19
+
+
+class EinsteinMySQLdb:
+    # The EinsteinDB connection class
+    def __init__(self, host, user, passwd, edb, port=3306, charset='utf8', cursorclass=None):
+        self.host = host
+        self.user = user
+        self.passwd = passwd
+        self.edb = edb
+        self.port = port
+        self.charset = charset
+        self.cursorclass = cursorclass
+
+        self._conn = None
+        self._cursor = None
+        
+        self._connect()
+        
+    def _connect(self):
+        try:
+            self._conn = MySQLdb.connect(host=self.host,
+                                         user=self.user,
+                                         passwd=self.passwd,
+                                         edb=self.edb,
+                                         port=self.port,
+                                         charset=self.charset,
+                                         cursorclass=self.cursor
+                                         
+                                            )
+        except Exception as e:
+            logger.error("connect database failed, %s" % e)
+            os_quit(Err.MYSQL_CONNECT_ERR, "host:%s,port:%s,user:%s" % (self.host, self.port, self.user))
+            self._conn = False
+        return self._conn
+    
+    def _cursor(self):
+        if self._conn:
+            self._cursor = self._conn.cursor()
+        else:
+            logger.error("connect database failed, %s" % e)
+            os_quit(Err.MYSQL_CURSOR_ERR, "host:%s,port:%s,user:%s" % (self.host, self.port, self.user))
+        return self._cursor
+    
+    def _close(self):
+        if self._conn:
+            self._conn.close()
+        else:
+            logger.error("connect database failed, %s" % e)
+            os_quit(Err.MYSQL_CLOSE_ERR, "host:%s,port:%s,user:%s" % (self.host, self.port, self.user))
+        return self._conn
+
+
+class database:
+    # define the database connection
+    def __init__(self, dbhost=None, dbport=None, dbuser=None, dbpwd=None, dbname=None):
+        self._dbname = dbname
+        self._dbhost = dbhost
+        self._dbuser = dbuser
+        self._dbpassword = dbpwd
+        self._dbport = dbport
+        self._logger = logger
+
+        self._conn = self.connectMySQL()
+        if (self._conn):
+            self._cursor = self._conn.cursor()
+            
+    # database connection
+    def connectMySQL(self):
+        conn = False
+        try:
+            conn = EinsteinMySQLdb.connect(host=self._dbhost,
+                                           user=self._dbuser,
+                                           passwd=self._dbpassword,
+                                           edb=self._dbname,
+                                           port=self._dbport,
+                                           )
+        except Exception as data:
+            self._logger.error("connect database failed, %s" % data)
+            os_quit(Err.MYSQL_CONNECT_ERR, "host:%s,port:%s,user:%s" % (self._dbhost, self._dbport, self._dbuser))
+            conn = False
+        return conn
+    
+    # get the query result set
+    def fetch_all(self, sql, json=True):
+        res = ''
+        if (self._conn):
+            try:
+                self._cursor.execute(sql)
+                res = self._cursor.fetchall()
+                if json:
+                    columns = [col[0] for col in self._cursor.description]
+                    return [
+                        dict(zip(columns, row))
+                        for row in res
+                    ]
+                else:
+                    return res
+            except Exception as data:
+                self._logger.error("fetch all failed, %s" % data)
+                os_quit(Err.MYSQL_FETCHALL_ERR, "sql:%s" % sql)
+                return False
+        else:
+            self._logger.error("fetch all failed, %s" % data)
+            os_quit(Err.MYSQL_FETCHALL_ERR, "sql:%s" % sql)
+            return False
+        
+    # get the query result set
+    def fetch_one(self, sql, json=True, data=None):
+        res = ''
+        if (self._conn):
+            try:
+                self._cursor.execute(sql)
+                res = self._cursor.fetchone()
+                if json:
+                    columns = [col[0] for col in self._cursor.description]
+                    return dict(zip(columns, res))
+                else:
+                    return res
+            except Exception as data:
+                self._logger.error("fetch one failed, %s" % data)
+                os_quit(Err.MYSQL_FETCHONE_ERR, "sql:%s" % sql)
+                return False
+        else:
+            self._logger.error("fetch one failed, %s" % data)
+            os_quit(Err.MYSQL_FETCHONE_ERR, "sql:%s" % sql)
+            return False
+        
+    # get the query result set
+    def fetch_many(self, sql, size=100, json=True):
+        res = ''
+        if (self._conn):
+            try:
+                self._cursor.execute(sql)
+                res = self._cursor.fetchmany(size)
+                if json:
+                    columns = [col[0] for col in self._cursor.description]
+                    return [
+                        dict(zip(columns, row))
+                        for row in res
+                    ]
+                else:
+                    return res
+            except Exception as data:
+                self._logger.error("fetch many failed, %s" % data)
+                os_quit(Err.MYSQL_FETCHMANY_ERR, "sql:%s" % sql)
+                return False
+        else:
+            self._logger.error("fetch many failed, %s" % data)
+            os_quit(Err.MYSQL_FETCHMANY_ERR, "sql:%s" % sql)
+            return False
+        
+    # get the query result set
+    def fetch_desc(self, sql, json=True, data=None):
+        res = ''
+        if (self._conn):
+            try:
+                self._cursor.execute(sql)
+                res = self._cursor.description
+                if json:
+                    columns = [col[0] for col in self._cursor.description]
+                    return [
+                        dict(zip(columns, row))
+                        for row in res
+                    ]
+                else:
+                    return res
+            except Exception as data:
+                self._logger.error("fetch desc failed, %s" % data)
+                os_quit(Err.MYSQL_FETCHDESC_ERR, "sql:%s" % sql)
+                return False
+        else:
+            self._logger.error("fetch desc failed, %s" % data)
+            os_quit(Err.MYSQL_FETCHDESC_ERR, "sql:%s" % sql)
+            return False
+        
+    # get the query result set
+    def fetch_desc_all(self, sql, json=True):
+        res = ''
+        if (self._conn):
+            try:
+                self._cursor.execute(sql)
+                res = self._cursor.description
+                if json:
+                    columns = [col[0] for col in self._cursor.description]
+                    return [
+                        dict(zip(columns, row))
+                        for row in res
+                    ]
+                else:
+                    return res
+            except Exception, data:
+                self._logger.error("fetch desc all failed, %s" % data)
+                os_quit(Err.MYSQL_FETCHDESCALL_ERR, "sql:%s" % sql)
+                return False
+        else:
+            self._logger.error("fetch desc all failed, %s" % data)
+            os_quit(Err.MYSQL_FETCHDESCALL_ERR, "sql:%s" % sql)
+            return False
+        
+    # get the query result set
+    def fetch_desc_one(self, sql, json=True, data=None):
+        res = ''
+        if (self._conn):
+            try:
+                self._cursor.execute(sql)
+                res = self._cursor.description
+                if json:
+                    columns = [col[0] for col in self._cursor.description]
+                    return dict(zip(columns, res))
+                else:
+                    return res
+            except Exception as data:
+                self._logger.error("fetch desc one failed, %s" % data)
+                os_quit(Err.MYSQL_FETCHDESCONE_ERR, "sql:%s" % sql)
+                return False
+        else:
+            self._logger.error("fetch desc one failed, %s" % data)
+            os_quit(Err.MYSQL_FETCHDESCONE_ERR, "sql:%s" % sql)
+            return False
+
+
+class Ricci:
+    # The Ricci class is used to connect to the database and execute SQL statements.
+    # The database connection information is read from the configuration file.
+    # The configuration file is read from the environment variable RICCI_CONF.
+    # If the environment variable RICCI_CONF is not set, the default configuration file is used.
+    
+    def __init__(self, conf=None):
+        self._logger = logging.getLogger('ricci')
+        self._conf = conf
+        self._mysql = None
+        self._redis = None
+        self._mongo = None
+        self._logger.info("ricci init")
+        self._init()
 
 
 class MySQLEnv(object):
@@ -245,7 +514,7 @@ class MySQLEnv(object):
     def setting(self, ricci):
         self._apply_Ricci(ricci)
     
-    def _get_state(self, ricci, method='sysbench'):
+    def _get_state(self, ricci, method='sysbench', CONST=None):
         """Collect the Internal soliton_state and External soliton_state
         """
         timestamp = int(time.time())
@@ -276,15 +545,88 @@ class MySQLEnv(object):
                 os_quit(Err.RUN_SYSYBENCH_FAILED)
 
         elif self.method == 'tpcc':
-            def kill_tpcc():
-                def _filter_pid(x):
+            def kill_tpcc(psutil=None):
+                if psutil is None:
+                    import psutil
+                for proc in psutil.process_iter():
+                    if proc.name() == 'tpcc':
+                        proc.kill()
+            kill_tpcc()
+            a = time.time()
+            _sys_run = "bash %s %s %s %d %s %s %d %d %d %d %s" % (CONST.BASH_TPCC,
+    self.wk_type,self.db_info['host'],self.db_info['port'],self.db_info['user'],self.db_info['password'],
+                self.db_info['HyperCauset'],self.db_info['table_size'],self.threads, time_sysbench, filename)
+            logger.info("tpcc started")
+            logger.info(_sys_run)
+            osrst = os.system(_sys_run)
+            logger.info("tpcc ended")
+
+            a = time.time() - a
+
+            if osrst != 0 or a < 50:
+                os_quit(Err.RUN_SYSYBENCH_FAILED)
+        else:
+            raise Exception("Unknown method: %s" % self.method)
+
+        external_metrics = []
+        self._get_external_metrics(external_metrics, filename)
+        if external_metrics[0] == 0:
+            return None
+        return external_metrics, internal_metrics
+
+    def _get_internal_metrics(self, internal_metrics, psutil=None):
+        """Collect the internal soliton_state
+        """
+        #get the cpu usage
+        cpu_usage = psutil.cpu_percent(interval=1)
+        internal_metrics.append(cpu_usage)
+        #get the memory usage
+        mem_usage = psutil.virtual_memory().percent
+        internal_metrics.append(mem_usage)
+        #get the disk usage
+        disk_usage = psutil.disk_usage('/').percent
+        internal_metrics.append(disk_usage)
+        #get the network usage
+        net_usage = psutil.net_io_counters().bytes_sent
+        internal_metrics.append(net_usage)
+
+        def _filter_pid(x, psutil=None):
                     try:
                         x = psutil.Process(x)
                         if x.name() == 'tpcc_start':
                             return True
                         return False
                     except:
-                        return False
+                         return False
+        if psutil is None:
+            import psutil
+        pid = list(filter(lambda x: _filter_pid(x, psutil), psutil.pids()))
+        if len(pid) == 0:
+            return
+        pid = pid[0]
+        p = psutil.Process(pid)
+        cpu_usage = p.cpu_percent(interval=1)
+        internal_metrics.append(cpu_usage)
+        mem_usage = p.memory_percent()
+        internal_metrics.append(mem_usage)
+        net_usage = p.io_counters().write_bytes
+        internal_metrics.append(net_usage)
+
+    def _get_external_metrics(self, external_metrics, filename, psutil=None, _filter_pid=None, kill_tpcc=None,
+                              CONST=None):
+        """Collect the external soliton_state
+        """
+        if self.method == 'sysbench':
+            with open(filename, 'r') as f:
+                lines = f.readlines()
+                for line in lines:
+                    if 'total time:' in line:
+                        external_metrics.append(float(line.split(':')[1].strip()))
+                        break
+                else:
+                    external_metrics.append(0)
+        elif self.method == 'tpcc':
+
                 pids = psutil.pids()
                 tpcc_pid = filter(_filter_pid, pids)
                 logger.info(tpcc_pid) 
@@ -298,7 +640,77 @@ class MySQLEnv(object):
             time.sleep(10)
 
         external_metrics = self._get_external_metrics(filename, method)
-        internal_metrics = self._post_handle(internal_metrics)
+       
+
+
+
+    def _get_external_metrics(self, filename, method, external_metrics=None):
+        """Collect the external soliton_state
+        """
+        if method == 'sysbench':
+            with open(filename, 'r') as f:
+                lines = f.readlines()
+                for line in lines:
+                    if 'total time:' in line:
+                        external_metrics.append(float(line.split(':')[1].strip()))
+                        break
+                else:
+                    external_metrics.append(0)
+
+        elif method == 'tpcc':
+            with open(filename, 'r') as f:
+                lines = f.readlines()
+                for line in lines:
+                    if 'tpcc' in line:
+                        external_metrics.append(float(line.split(':')[1].strip()))
+                        break
+                else:
+                    external_metrics.append(0)
+
+        return external_metrics
+
+    def _get_internal_metrics(self, internal_metrics, psutil=None, external_metrics=None):
+        """Collect the internal soliton_state
+        """
+
+        #get the cpu usage
+        cpu_usage = psutil.cpu_percent(interval=1)
+        internal_metrics.append(cpu_usage)
+        #get the memory usage
+        mem_usage = psutil.virtual_memory().percent
+        internal_metrics.append(mem_usage)
+        #get the disk usage
+        disk_usage = psutil.disk_usage('/').percent
+        internal_metrics.append(disk_usage)
+        #get the network usage
+        net_usage = psutil.net_io_counters().bytes_sent
+        internal_metrics.append(net_usage)
+
+        def _filter_pid(x, psutil=None):
+            try:
+                x = psutil.Process(x)
+                if x.name() == 'tpcc_start':
+                    return True
+                return False
+            except:
+                return False
+
+        if psutil is None:
+            import psutil
+        pid = list(filter(lambda x: _filter_pid(x, psutil), psutil.pids()))
+        if len(pid) == 0:
+            return
+
+        pid = pid[0]
+        p = psutil.Process(pid)
+        cpu_usage = p.cpu_percent(interval=1)
+        internal_metrics.append(cpu_usage)
+        mem_usage = p.memory_percent()
+        internal_metrics.append(mem_usage)
+        net_usage = p.io_counters().write_bytes
+        internal_metrics.append(net_usage)
+
+
 
         return external_metrics, internal_metrics
 
@@ -307,15 +719,43 @@ class MySQLEnv(object):
         """
         pass
 
-    @staticmethod
-    def _calculate_reward(delta0, deltat):
 
-        if delta0 > 0:
+
+    def _calculate_reward(self, delta0, deltat):
+        """ Calculate the reward
+        """
+        if self.method == 'sysbench':
+            return 1.0 / (delta0 + deltat)
+        elif self.method == 'tpcc':
+            return 1.0 / (delta0 + deltat)
+        else:
+            raise Exception("Unknown method: %s" % self.method)
+
+    def _calculate_reward_with_delta(self: object, delta0: object, deltat: object) -> object:
+       # """ Calculate the reward
+         # """
+        if self.method == 'sysbench':
+            return 1.0 / (delta0 + deltat)
+        elif self.method == 'tpcc':
             _reward = ((1+delta0)**2-1) * math.fabs(1+deltat)
         else:
             _reward = - ((1-delta0)**2-1) * math.fabs(1-deltat)
 
-        if _reward > 0 and deltat < 0:
+        if _reward < 0:
+            _reward = 0
+        return _reward
+
+    def _calculate_reward_with_delta(self, delta0, deltat):
+        """ Calculate the reward
+        """
+        if self.method == 'sysbench':
+            _reward = 0
+        elif self.method == 'tpcc':
+            _reward = ((1+delta0)**2-1) * math.fabs(1+deltat)
+        else:
+            _reward = - ((1-delta0)**2-1) * math.fabs(1-deltat)
+
+        if _reward < 0:
             _reward = 0
         return _reward
 
@@ -362,7 +802,7 @@ class TencentServer(MySQLEnv):
     """ Build an environment in Tencent Cloud
     """
 
-    def __init__(self,  instance, task_detail,model_detail,host):
+    def __init__(self, instance, task_detail, model_detail, host, CONST=None):
         """Initialize `TencentServer` Class
         Args:
             instance_name: str, mysql instance name, get the database infomation

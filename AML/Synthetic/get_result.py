@@ -34,8 +34,8 @@ if method == 'xgb':
 if method == 'nn':
     os.system('python run_xgb_nn.py --version ' + version + ' --model nn')
 
-# deepdb
-if method == 'deepdb':
+# EINSTEINAI4DB
+if method == 'EINSTEINAI4DB':
     os.system('python run_deepdb.py --version ' + version)
 
 # naru
@@ -56,7 +56,7 @@ if method == 'bayesian':
 # kde
 if method == 'kde':
     os.chdir('./kde_python')
-    os.system('python kde.py --train-file ../sql_truecard/' + version +'train.sql --test-file ../sql_truecard/' + version +'test.sql --min-max-file ../learnedcardinalities-master/data/' + version +'_min_max_vals.csv --version ' + version)
+    os.system('python kde.py --train-file ../sql_truecard/' + version +'train.sql --test-file ../sql_truecard/' + version +'test.sql --min-max-file ../MUMFORDGRAMMAR/data/' + version +'_min_max_vals.csv --version ' + version)
     os.chdir('..')
 
 print('cols_' + str(cols) + '_distinct_' + str(distinct) + '_corr_' + str(corr) + '_skew_' + str(skew) + 'is OK.')

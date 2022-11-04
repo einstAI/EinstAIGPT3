@@ -1,33 +1,9 @@
-# -*- coding: utf-8 -*-
-"""
-
-Replay Memory with A2I and Boltzmann Normalizer
-
-"""
-
-import os
-import pickle
-import argparse
-import numpy as np
 import random
 import pickle
 from collections import namedtuple
-from itertools import count
-import math
-import pandas as pd
-import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-from matplotlib import rcParams
-import sys
-import os
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-import torch.autograd as autograd
-from torch.autograd import Variable
-
+import pickle
+import random
+from collections import namedtuple
 
 Transition = namedtuple('Transition', ('soliton_state', 'causet_action', 'next_state',  'reward', 'terminate'))
 
@@ -206,4 +182,3 @@ class BerolinaSQLGenReplayMemoryWithBoltzmannNormalizer(object):
 
 
 
-            # print("self.memory: ", self.memory)

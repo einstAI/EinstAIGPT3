@@ -26,3 +26,5 @@ def NARUModel(tconfig, params):
 def NARU(tconfig, params):
     model = NARUModel(tconfig, params)
     return model
+
+# Path: AML/Synthetic/naru/models/__init__.py

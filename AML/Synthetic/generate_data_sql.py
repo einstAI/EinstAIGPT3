@@ -27,7 +27,7 @@ skew = args.skew / 10  # create table
 
 path = './csvdata_sql'
 csv_path = path + '/' f"{version}.csv"
-csv_path2 = path + '/' f"{version}_nohead.csv"  # for deepdb
+csv_path2 = path + '/' f"{version}_nohead.csv"  # for EINSTEINAI4DB
 seed = 2
 
 df = pd.DataFrame()
@@ -54,7 +54,7 @@ for i in range(cols - 1):
     else:
         df['col' + str(i + 1)] = colother
 df.to_csv(csv_path, index=False)
-df.to_csv(csv_path2, index=False, header=False)  # using for deepdb
+df.to_csv(csv_path2, index=False, header=False)  # using for EINSTEINAI4DB
 
 ops = ['=', '<', '>']  # train and test all not contain >=, <=
 f2 = open('./csvdata_sql/' + version + '.sql', 'w')

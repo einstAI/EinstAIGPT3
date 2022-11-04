@@ -15,7 +15,7 @@ from numpy.distutils.fcompiler import environment
 from past.builtins import xrange
 
 import utils
-from AML.Overall.bayesian.factorized_sampler.factorized_sampler import main
+from AML.Transformers.bayesian.factorized_sampler.factorized_sampler import main
 from AML.Synthetic.naru import models
 from EINSTAI.OUCausetFlowProcess.CostTraining import config
 
@@ -43,6 +43,45 @@ tconfig.tencent = opt.tencent
 tconfig.sa_path = opt.sa_path
 tconfig.params = opt.params
 tconfig.phase = opt.phase
+
+
+def train():
+    # we need to save the model
+models = []
+for i in range(10):
+    model = DQN(tconfig)
+    models.append(model)
+    train()
+
+    # we need to save the model
+
+if tconfig.phase == 'train':
+    train()
+elif tconfig.phase == 'test':
+    test()
+else:
+    print('Unknown phase: ', tconfig.phase)
+
+def test():
+    print('Testing...')
+    env = ReadEnv(tconfig)
+    state = env.reset()
+    for i in range(tconfig['num_steps']):
+        action = env.get_action(state)
+        next_state, reward, done, info = env.step(action)
+        state = next_state
+        if done:
+            break
+    env.close()
+    print('Testing Done')
+
+
+def train():
+
+
+
+
+# Path: EinsteinDB-GPT3/einstAI-DALLE2/dalle-2-einst-ai-gen-sql-normed.py
 
 if __name__ == '__main__':
     if opt.phase == 'train':
@@ -169,16 +208,18 @@ class WriteEnv:
         action_causet = model.choose_action(state)
         return action_causet
 
+
+def get_action(state):
+    #get the action_causet from the model
+    action_causet = model.choose_action(state)
+    return action_causet
+
+
 class ReadWriteEnv:
     def reset(self):
         # reset the environment
         self.state = self.env.reset()
         return self.state
-
-    def get_action(self, state):
-        #get the action_causet from the model
-        action_causet = model.choose_action(state)
-        return action_causet
 
     def step(self, action):
         #timestep
@@ -324,7 +365,7 @@ elif opt.phase == 'test_read_write':
                 loss = 0
                 model.save_model('sl_model_params/{}_{}.pkl'.format(expr_name, epoch))
 
-            action = env.get_action(state)
+            action = get_action(state)
             next_state, reward, done, info = env.step(action)
             state = next_state
             if done:
@@ -403,7 +444,7 @@ state = env.reset()
         raise Exception('Wrong workload type')
     state = env.reset()
     for i in range(tconfig['num_steps']):
-        action = env.get_action(state)
+        action = get_action(state)
         next_state, reward, done, info = env.step(action)
         state = next_state
         if done:

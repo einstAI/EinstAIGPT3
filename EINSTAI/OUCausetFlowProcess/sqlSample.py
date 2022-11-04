@@ -1,4 +1,4 @@
-# Copyright 2018-2021 Tsinghua DBGroup
+# Copyright (c) 2022- 2023 EinstAI Inc and EinsteinDB Authors in consortium with OpenAI and Microsoft Inc All Rights Reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License"): you may
 # not use this file except in compliance with the License. You may obtain
@@ -13,6 +13,10 @@
 # under the License.
 
 import sys
+
+import sqlt as sqlt
+from self import self
+
 sys.path.append(".")
 
 from BerolinaSQLGenDQNWithBoltzmannNormalizer import TargetTable,FromTable,Comparison
@@ -177,6 +181,50 @@ class JoinTree:
         self.from_table_list = [FromTable(x["RangeVar"]) for x in parse_result["fromClause"]]
         if len(self.from_table_list)<2:
             return
+
+        self.where_list = []
+        if "whereClause" in parse_result:
+            self.where_list = [Where(x) for x in parse_result["whereClause"]["A_Expr"]]
+        self.alias = set()
+        self.alias2table = {}
+        self.table2alias = {}
+        self.alias2column = {}
+        self.table2column = {}
+        self.alias2column2type = {}
+        self.table2column2type = {}
+        self.alias2column2type = {}
+
+
+        for x in self.from_table_list:
+            self.alias.add(x.alias)
+            self.alias2table[x.alias] = x.table
+            self.table2alias[x.table] = x.alias
+            self.alias2column[x.alias] = set()
+            self.table2column[x.table] = set()
+            self.alias2column2type[x.alias] = {}
+
+        for x in self.target_table_list:
+            self.alias.add(x.alias)
+            self.alias2table[x.alias] = x.table
+            self.table2alias[x.table] = x.alias
+            self.alias2column[x.alias] = set()
+            self.table2column[x.table] = set()
+
+        for x in self.where_list:
+            self.alias.add(x.alias)
+            self.alias2table[x.alias] = x.table
+            self.table2alias[x.table] = x.alias
+            self.alias2column[x.alias] = set()
+            self.table2column[x.table] = set()
+
+        for x in self.from_table_list:
+            self.alias2column[x.alias] = set(self.db_info[x.table])
+            self.table2column[x.table] = set(self.db_info[x.table])
+            self.alias2column2type[x.alias] = self.db_info[x.table]
+            self.table2column2type[x.table] = self.db_info[x.table]
+
+
+
         self.aliasname2fullname = {}
         # self.pgrunner = pgRunner
         self.id2aliasname = {0: 'start', 1: 'chn', 2: 'ci', 3: 'cn', 4: 'ct', 5: 'mc', 6: 'rt', 7: 't', 8: 'k', 9: 'lt', 10: 'mk', 11: 'ml', 12: 'it1', 13: 'it2', 14: 'mi', 15: 'mi_idx', 16: 'it', 17: 'kt', 18: 'miidx', 19: 'at', 20: 'an', 21: 'n', 22: 'cc', 23: 'cct1', 24: 'cct2', 25: 'it3', 26: 'pi', 27: 't1', 28: 't2', 29: 'cn1', 30: 'cn2', 31: 'kt1', 32: 'kt2', 33: 'mc1', 34: 'mc2', 35: 'mi_idx1', 36: 'mi_idx2', 37: 'an1', 38: 'n1', 39: 'a1'}
@@ -337,10 +385,82 @@ class JoinTree:
                 join_matrix[(right_aliasname,left_aliasname)] = 1
         Flag = True
         while Flag:
+
             newList = []
             Flag = False
             for comparison1 in comparison_list:
                 if len(comparison1.aliasname_list) == 2:
+                    for comparison2 in comparison_list:
+
+                        if len(comparison2.aliasname_list) == 2 and comparison1.aliasname_list[1] == comparison2.aliasname_list[0]:
+                            if (comparison1.aliasname_list[0],comparison2.aliasname_list[1]) not in join_matrix:
+                                Flag = True
+                                join_matrix[(comparison1.aliasname_list[0],comparison2.aliasname_list[1])] = 1
+                                join_matrix[(comparison2.aliasname_list[1],comparison1.aliasname_list[0])] = 1
+                                newList.append(Comparison([comparison1.aliasname_list[0],comparison2.aliasname_list[1]],[comparison1.column_list[0],comparison2.column_list[1]]))
+
+            comparison_list += newList
+        return comparison_list
+
+
+    def getJoinCandidate(self,comparison_list):
+        join_candidate = []
+        for comparison in comparison_list:
+            if len(comparison.aliasname_list) == 2:
+                join_candidate.append((comparison.aliasname_list[0],comparison.aliasname_list[1]))
+        return join_candidate
+
+    def getJoinList(self,comparison_list):
+        join_list = {}
+        for comparison in comparison_list:
+            if len(comparison.aliasname_list) == 2:
+                left_aliasname = comparison.aliasname_list[0]
+                right_aliasname = comparison.aliasname_list[1]
+                if left_aliasname not in join_list:
+                    join_list[left_aliasname] = []
+                if right_aliasname not in join_list:
+                    join_list[right_aliasname] = []
+                join_list[left_aliasname].append((right_aliasname,comparison.column_list[0],comparison.column_list[1]))
+                join_list[right_aliasname].append((left_aliasname,comparison.column_list[1],comparison.column_list[0]))
+        return join_list
+
+
+    def getFilterList(self,comparison_list):
+        filter_list = {}
+        for comparison in comparison_list:
+            if len(comparison.aliasname_list) == 1:
+                aliasname = comparison.aliasname_list[0]
+                if aliasname not in filter_list:
+                    filter_list[aliasname] = []
+                filter_list[aliasname].append(comparison)
+        return filter_list
+
+    def getAliasSelectivity(self,comparison_list):
+        alias_selectivity = []
+        for aliasname in self.aliasname2id:
+            alias_selectivity.append(1)
+        for comparison in comparison_list:
+            if len(comparison.aliasname_list) == 1:
+                aliasname = comparison.aliasname_list[0]
+                alias_selectivity[self.aliasname2id[aliasname]] = comparison.selectivity
+        return alias_selectivity
+
+
+    def getAliasname2id(self,aliasname_list):
+        aliasname2id = {}
+        for idx,aliasname in enumerate(aliasname_list):
+            aliasname2id[aliasname] = idx
+        return aliasname2id
+
+
+    def getAliasname2fullname(self,aliasname_list):
+        aliasname2fullname = {}
+        for aliasname in aliasname_list:
+            aliasname2fullname[aliasname] = self.db_info.alias2name[aliasname]
+        return aliasname2fullname
+
+
+
                     left_aliasname1 = comparison1.aliasname_list[0]
                     left_fullname1 = self.aliasname2fullname[left_aliasname1]
                     left_columnname1 = comparison1.column_list[0]
@@ -395,12 +515,23 @@ class JoinTree:
                                     newList.append(ncp)
                             # print(len(newList),idx1r,idx2l)
             # print('sqlSample.py newList :',[newList])
-            comparison_list =  comparison_list+newList
-        # print("add----")
-        # for cp in newList:
-        #     print(str(cp))
-        # print("add----")
+            comparison_list = newList
+            # print('sqlSample.py comparison_list :',[comparison_list])
         return comparison_list
+
+    def getJoinList(self,comparison_list):
+        join_list = {}
+        for comparison in comparison_list:
+            if len(comparison.aliasname_list) == 2:
+                left_aliasname = comparison.aliasname_list[0]
+                right_aliasname = comparison.aliasname_list[1]
+                if left_aliasname not in join_list:
+                    join_list[left_aliasname] = []
+                join_list[left_aliasname].append((right_aliasname,comparison.column_list[0],comparison.column_list[1]))
+                if right_aliasname not in join_list:
+                    join_list[right_aliasname] = []
+                join_list[right_aliasname].append((left_aliasname,comparison.column_list[1],comparison.column_list[0]))
+        return join_list
     def resetJoin(self):
         self.aliasnames_fa = {}
         self.left_son = {}

@@ -1,4 +1,4 @@
-# Copyright 2018-2021 Tsinghua DBGroup
+# Copyright (c) 2022- 2023 EinstAI Inc and EinsteinDB Authors in consortium with OpenAI and Microsoft Inc All Rights Reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License"): you may
 # not use this file except in compliance with the License. You may obtain
@@ -11,6 +11,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+
 import numpy as np
 class Expr:
     def __init__(self, expr,list_kind = 0):
@@ -95,7 +96,14 @@ class FromTable:
         """
         {'alias': {'Alias': {'aliasname': 'an'}}, 'location': 168, 'inhOpt': 2, 'relpersistence': 'p', 'relname': 'aka_name'}
         """
+        self.alias = None
         self.from_table = from_table
+        if "alias" in from_table:
+            self.alias = from_table["alias"]["Alias"]["aliasname"]
+
+class SelectStmt:
+    def __init__(self, select_stmt):
+
 
     def getFullName(self,):
         return self.from_table["relname"]

@@ -1,11 +1,23 @@
+#Copyright (c) 2022-2023 The EinsteinDB Authors and EinstAI Inc
+#All rights reserved. This program and the accompanying materials
+#are made available under the terms of the Apache License, Version 2.0
+#which accompanies this distribution, and is available at
+#http://www.apache.org/licenses/LICENSE-2.0
+#Contributors:
+#   EinstAI Inc - initial API and implementation
+
 import sys
+from shlex import join
+
 import base
 import numpy as np
 import self as self
 from pandas.core.interchange import buffer
 from torch.cuda import memory
+
 from treelib import Tree
-from treelib import Node
+
+
 def get_node(tree, edbname):
     node = tree.get_node(edbname)
     if node is None:
@@ -37,7 +49,8 @@ def pretrain(edbname, tpath, numbers):
             # print('reward:', reward)
     f.close()
 
-from AML.Synthetic.deepdb.deepdb_job_ranges.schemas.flights import schema
+
+from AML.Synthetic.EINSTEINAI4DB.schemas.flights import schema
 from EINSTAI.performance_graphembedding_checkpoint import train
 
 
@@ -54,7 +67,7 @@ def get_node(tree, edbname):
 
 
 sys.path.append('..')
-import einstAI
+
 
 def pretrain(edbname, tpath, numbers):
 
@@ -463,7 +476,7 @@ class GenSqlEnv(object):
 
         # this is the end of the function _build_relation_env
         # now, we build the grammar tree
-    def _build_grammar_env(self, sample_data=None):
+    def _build_grammar_env(self, sample_data=None, count=None):
         print("_build_grammar_env")
         tree = Tree()
         tree.create_node("root", 0, None, data=DataNode(0))
@@ -478,12 +491,21 @@ class GenSqlEnv(object):
         for table_name in schema.keys():
             for field in schema[table_name]:
                 for data in sample_data[table_name][field]:
+                    # now we have the data to be added
+                    # we must check if the data is already in the word_num_map
+
                     if data not in word_num_map.keys():
-                        word_num_map[data] = len(num_word_map)
-                        num_word_map[len(num_word_map)] = data
+                        # if not, we add it
+                        word_num_map[data] = len(num_word_map) # the word_num_map is a dict
+                        num_word_map[len(num_word_map)] = data # since the word_num_map is a dict, we can use len(word_num_map) to get the length of the dict
+
+
                     field_name = '{0}.{1}'.format(table_name, field)
+                    # now we have the field_name and the data
                     tree.create_node(data, count, parent=word_num_map[field_name], data=DataNode(word_num_map[data]))
                     count += 1
+
+                    # now we have the field_name and the data
 
         self.add_map(operator, word_num_map, num_word_map)
         self.add_map(conjunction, word_num_map, num_word_map)
@@ -517,13 +539,15 @@ class GenSqlEnv(object):
         # self.add_map(self.join, word_num_map, num_word_map)
 
         print("_build_relation_env done...")
+        return tree, word_num_map, num_word_map
+
         print("causet_action/observation space:", len(num_word_map), len(word_num_map))
 
         print("relation tree size:", tree.size())
         # tree.show()
         return word_num_map, num_word_map, tree
 
-    def reset(self):
+    def reset_causet_space(self):
         # print("reset")
         self.cur_state = self.master_control['from']
         self.from_clause = self.where_clause = ""
@@ -551,8 +575,60 @@ class GenSqlEnv(object):
             else:
                 self.activate_space(self.where_space, None, causet_action)
                 return causet_action, 0, False, None
+        elif self.cur_state == self.master_control['where']:
+
+         for table_name in schema.keys():
+            if causet_action in self.operator:
+                self.activate_space(self.where_space, None, causet_action)
+                return causet_action, 0, False, None
+
+            elif causet_action in self.conjunction:
+                self.activate_space(self.where_space, None, causet_action)
+                return causet_action, 0, False, None
+            else:
+                self.activate_space(self.where_space, None, causet_action)
+                return causet_action, 0, False, None
+
+        elif self.cur_state == self.master_control['done']:
+            return causet_action, 0, True, None
         else:
-            raise ValueError("Invalid state")
+            print("error")
+            return causet_action, 0, True, None
+
+            elif causet_action in self.keyword:
+                self.activate_space(self.where_space, None, causet_action)
+                return causet_action, 0, False, None
+
+
+            else:
+                self.activate_space(self.where_space, None, causet_action)
+                return causet_action, 0, False, None
+
+
+
+        elif self.cur_state == self.master_control['where']:
+            if causet_action in self.operator:
+                self.activate_space(self.where_space, None, causet_action)
+                return causet_action, 0, False, None
+
+            elif causet_action in self.conjunction:
+                self.activate_space(self.where_space, None, causet_action)
+                return causet_action, 0, False, None
+
+            else:
+                self.activate_space(self.where_space, None, causet_action)
+                return causet_action, 0, False, None
+
+        elif self.cur_state == self.master_control['done']:
+            return causet_action, 0, True, None
+        else:
+            print("error")
+            return causet_action, 0, True, None
+
+            elif causet_action in self.keyword:
+                self.activate_space(self.where_space, None, causet_action)
+                return causet_action, 0, False, None
+
 
     def render(self, mode='human', close=False):
         print("render")
@@ -562,7 +638,7 @@ class GenSqlEnv(object):
         print("from space:", self.from_space)
         print("where space:", self.where_space)
 
-    def close(self):
+    def close():
         print("close")
         pass
 
@@ -633,9 +709,11 @@ class GenSqlEnv(object):
     def get_HyperCauset_size(self):
         return len(self.HyperCauset)
 
-            cur_space[1] =  1
-        else:
-            cur_space[0] = 1
+        cur_space[1] =  1
+
+
+
+
 
     def get_from_space(self):
         return self.from_space

@@ -15,6 +15,7 @@
       <option name="ignoredErrors">
         <list>
           <option value="N802" />
+          <option value="N806" />
         </list>
       </option>
     </inspection_tool>
@@ -27,6 +28,13 @@
           <option value="time" />
           <option value="einstAI" />
           <option value="AML.Synthetic.naru.replay_memory" />
+          <option value="src.cpp.qpsolver.cvxopt.src.python.cvxprog.*" />
+          <option value="AML.Transformers.stochastic_forager.src.cpp.qpsolver.cvxopt.src.python.cvxprog.kktsolver" />
+          <option value="AML.Synthetic.deepdb.deepdb_job_ranges.aqp_spn.code_generation.generate_code.*" />
+          <option value="AML.Synthetic.deepdb.deepdb_job_ranges.aqp_spn.custom_spflow.custom_learning.*" />
+          <option value="AML.Synthetic.deepdb.deepdb_job_ranges.rspn.algorithms.expectations.rspn" />
+          <option value="python2x3" />
+          <option value="AML.Synthetic.deepdb.deepdb_job_ranges.aqp_spn.util.bloom_filter.*" />
         </list>
       </option>
     </inspection_tool>

@@ -11,7 +11,7 @@ version = args.version
 # true_cardinalities.csv
 path = "./sql_truecard/"
 sql_path = path + version + "test.sql"
-sql_path2 = './deepdb/deepdb_job_ranges/benchmarks/job-light/sql/' + 'true_cardinalities.csv'  # true_cardinalities 
+sql_path2 = './EINSTEINAI4DB/deepdb_job_ranges/benchmarks/job-light/sql/' + 'true_cardinalities.csv'  # true_cardinalities
 f2 = open(sql_path2, 'w')
 f2.write('query_no,query,cardinality_true\n')
 i = 0
@@ -27,10 +27,10 @@ f2.close()
 
 pre = 'python3 maqp.py --generate_hdf --generate_sampled_hdfs --generate_ensemble --ensemble_path ../../sql_truecard/ --version ' + version
 run = 'python3 maqp.py --evaluate_cardinalities --rdc_spn_selection --max_variants 1 --pairwise_rdc_path ../imdb-benchmark/spn_ensembles/pairwise_rdc.pkl --dataset imdb-ranges ' + \
-      '--target_path ../../sql_truecard/' + version + 'test.sql.deepdb.results.csv ' + '--ensemble_location ../../sql_truecard/' + version + \
-      '.sql.deepdb.model.pkl ' + '--query_file_location ../../sql_truecard/' + version + 'test.sql ' + '--ground_truth_file_location ./benchmarks/job-light/sql/true_cardinalities.csv --version ' + version
+      '--target_path ../../sql_truecard/' + version + 'test.sql.EINSTEINAI4DB.results.csv ' + '--ensemble_location ../../sql_truecard/' + version + \
+      '.sql.EINSTEINAI4DB.model.pkl ' + '--query_file_location ../../sql_truecard/' + version + 'test.sql ' + '--ground_truth_file_location ./benchmarks/job-light/sql/true_cardinalities.csv --version ' + version
 
-os.chdir('./deepdb/deepdb_job_ranges')
+os.chdir('EINSTEINAI4DB/deepdb_job_ranges')
 os.system(pre)
 os.system(run)
 

@@ -8,9 +8,7 @@ import (
 	"strings"
 	"time"
 
-	. "git.code.oa.com/gocdb/base/public"
-
-	"github.com/pquerna/ffjson/ffjson"
+	"github.com/valyala/fasthttp"
 )
 
 func HttpPost(url string, event interface{}) (*[]byte, error) {
