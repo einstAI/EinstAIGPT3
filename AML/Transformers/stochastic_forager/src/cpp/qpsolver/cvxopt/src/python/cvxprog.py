@@ -15,6 +15,8 @@
 
 
 import math
+
+from functorch.dim import dims
 from numpy import sum as sum
 from pandas.conftest import spmatrix
 
@@ -23,7 +25,7 @@ from scipy.linalg import blas
 from numpy import matrix
 
 from AML.Synthetic.EINSTEINAI4DB.mumfordswitch.structure import base
-from AML.Transformers.stochastic_forager.src.cpp.qpsolver.cvxopt.examples.book.chap4.rls import c
+from AML.Transformers.stochastic_forager.src.cpp.qpsolver.cvxopt.examples.book.chap4.rls import c, A
 from AML.Transformers.stochastic_forager.src.cpp.qpsolver.cvxopt.src.python import misc, __all__, solvers
 
 """
@@ -1600,7 +1602,7 @@ def cp(F, G=None, h=None, dims=None, A=None, b=None,
 
                 # Evaluate the derivative of G*x - h.
                 def Df_e(u, v, alpha=1.0, beta):
-                    base.gemv(G, u[0], v, alpha=alpha, beta=beta,
+                    base.gemv(G, u[0], v, beta=beta, alpha=alpha,
 
 
     if type(G) in (matrix, spmatrix):
@@ -1647,7 +1649,7 @@ def cp(F, G=None, h=None, dims=None, A=None, b=None,
 
     if type(A) in (matrix, spmatrix):
         def A_e(u, v, alpha=1.0, beta=0.0):
-            base.gemv(A, u[0], v, alpha=alpha, beta=beta)
+            base.gemv(A, u[0], v, beta=beta)
     else:
         def A_e(u, v, alpha=1.0, beta=0.0):
             A(u[0], v, alpha=alpha, beta=beta)
@@ -1681,12 +1683,12 @@ class F_e:
                 Df = v[1]
             else:
                 val, Df, H = self.F(x[0], z)
-                val = matrix(val, tc='d')
+                val = matrix(val)
                 val[0] -= x[1]
 
             if type(Df) in (matrix, spmatrix):
                 def Df_e(u, v, alpha=1.0, beta=0.0):
-                    base.gemv(Df, u[0], v, alpha=alpha, beta=beta)
+                    base.gemv(Df, u[0], v, beta=beta)
                     v[1] -= alpha * u[1]
 
 
@@ -1718,6 +1720,22 @@ def xnewcopy(param):
     else:
         return param
 
+
+def xscal(alpha, param):
+    #a transmute function for the xscal function
+    #this is a function that is used in the solvers
+    #to scale the parameter
+
+    if type(param) == matrix:
+        param *= alpha
+    elif type(param) == list:
+        for p in param:
+            xscal(alpha, p)
+    elif type(param) == tuple:
+        for p in param:
+            xscal(alpha, p)
+    else:
+        param *= alpha
 
 
 

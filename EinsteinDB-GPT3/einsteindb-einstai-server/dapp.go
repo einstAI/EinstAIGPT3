@@ -1,16 +1,41 @@
-package main
+package
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
-
-	tconf "git.code.oa.com/gocdb/base/config"
-	"git.code.oa.com/gocdb/base/go-sql-driver/mysql"
-	. "git.code.oa.com/gocdb/base/public"
-	_ "git.code.oa.com/gocdb/base/service/ha"
-	_ "git.code.oa.com/gocdb/base/service/http"
 )
+
+ var (
+	ErrNeedRestart = errors.New("need restart")
+)
+
+ func GetConfNonEmptyString(conf tconf.Configer, key string) (string, error) {
+	var err error
+	var value string
+	if value, err = conf.String(key); err != nil {
+		return "", err
+	}
+	if value == "" {
+		return "", fmt.Errorf("config %s is empty", key)
+	}
+	return value, nil
+}
+
+ func GetConfNonEmptyInt(conf tconf.Configer, key string) (int, error) {
+	var err error
+	var value int
+	if value, err = conf.Int(key); err != nil {
+		return 0, err
+	}
+	if value == 0 {
+		return 0, fmt.Errorf("config %s is empty", key)
+	}
+	return value, nil
+}
+
+
 
 //map from old exception feature id to new alarm type level and
 type CompatibleExeceptionMap struct {

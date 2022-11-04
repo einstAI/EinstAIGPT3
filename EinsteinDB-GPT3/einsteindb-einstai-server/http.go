@@ -1,10 +1,21 @@
-package main
+package
+
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
 	. "git.code.oa.com/gocdb/base/public"
+	. "git.code.oa.com/gocdb/base/public/err"
+	. "git.code.oa.com/gocdb/base/public/log"
+	. "git.code.oa.com/gocdb/base/public/prot"
+	. "git.code.oa.com/gocdb/base/public/prot/tune"
+	. "git.code.oa.com/gocdb/base/public/prot/tune/task"
+	. "git.code.oa.com/gocdb/base/public/prot/tune/task/result"
+
+
+
 )
 
 type ProtCommonRsp struct {
@@ -20,8 +31,8 @@ func SendRsp(w http.ResponseWriter, data interface{}, err error) error {
 		rsp.Errno = 0
 		rsp.Error = ""
 		rsp.Data = data
-	} else if e, ok := err.(*CDBError); ok {
-		rsp.Errno = e.Errno()
+	} else if e, ok := err.(*Err); ok {
+		rsp.Errno = e.Errno
 		rsp.Error = e.Error()
 		rsp.Data = data
 	} else {
@@ -29,23 +40,36 @@ func SendRsp(w http.ResponseWriter, data interface{}, err error) error {
 		rsp.Error = err.Error()
 		rsp.Data = data
 	}
-	err2 := SendHttpJsonRsp(w, rsp)
+	err2 := SendJson(w, rsp)
 	if err2 != nil {
 		TLog.Errorf("SendHttpJsonRsp failed +%v", err2)
 	}
 	return err2
 }
 
+func SendJson(w http.ResponseWriter, rsp ProtCommonRsp) interface{} {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	return json.NewEncoder(w).Encode(rsp)
+}
+
 //=============================== http ===============================
 func (dapp *TuneServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	/*
-		if !dapp.online { //服务未启动
-			TLog.Error("http request arrived but server is not online!")
-			var rsp ProtCommonRsp
-			rsp.SendErrRsp(w, ErrServerOffline)
-			return
+		if r.Method == "GET" {
+			dapp.HandleGet(w, r)
+		} else if r.Method == "POST" {
+			dapp.HandlePost(w, r)
+		} else {
+			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
+
+
+
 	*/
+
+	//TODO
+	//dapp.HandlePost(w, r)
 	TLog.Info(r.URL.Path)
 	switch r.URL.Path {
 	case "/create_task":

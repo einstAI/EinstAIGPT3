@@ -67,6 +67,12 @@ class Err:
 
 
 class MySQLdb:
+    Error = mysql.connector.Error
+
+
+
+
+
     def __init__(self, host, port, user, password, database, charset='utf8'):
         self.host = host
         self.port = port
@@ -192,6 +198,111 @@ class MySQLdb:
             return False
 
 
+class MySQL:
+    def __init__(self, host, port, user, password, database, charset='utf8'):
+        self.host = host
+        self.port = port
+        self.user = user
+        self.password = password
+        self.database = database
+        self.charset = charset
+        self.conn = None
+        self.cursor = None
+
+    def connect(self):
+        try:
+            self.conn = mysql.connector.connect(
+                host=self.host,
+                port=self.port,
+                user=self.user,
+                password=self.password,
+                database=self.database,
+                charset=self.charset,
+            )
+            self.cursor = self.conn.cursor()
+        except mysql.connector.Error as e:
+            logger.error('MySQL connect error: %s', e)
+            return False
+        return True
+
+    def close(self):
+        try:
+            self.cursor.close()
+            self.conn.close()
+        except mysql.connector.Error as e:
+            logger.error('MySQL close error: %s', e)
+            return False
+        return True
+
+    def query(self, sql):
+        try:
+            self.cursor.execute(sql)
+            return self.cursor.fetchall()
+        except mysql.connector.Error as e:
+            logger.error('MySQL query error: %s', e)
+            return False
+
+    def insert(self, sql):
+        try:
+            self.cursor.execute(sql)
+            self.conn.commit()
+        except mysql.connector.Error as e:
+            logger.error('MySQL insert error: %s', e)
+            return False
+        return True
+
+    def update(self, sql):
+        try:
+            self.cursor.execute(sql)
+            self.conn.commit()
+        except mysql.connector.Error as e:
+            logger.error('MySQL update error: %s', e)
+            return False
+        return True
+
+    def delete(self, sql):
+        try:
+            self.cursor.execute(sql)
+            self.conn.commit()
+        except mysql.connector.Error as e:
+            logger.error('MySQL delete error: %s', e)
+            return False
+        return True
+
+    def commit(self):
+        try:
+            self.conn.commit()
+        except mysql.connector.Error as e:
+            logger.error('MySQL commit error: %s', e)
+            return False
+        return True
+
+    def rollback(self):
+        try:
+            self.conn.rollback()
+        except mysql.connector.Error as e:
+            logger.error('MySQL rollback error: %s', e)
+            return False
+        return True
+
+    def execute(self, sql):
+        try:
+            self.cursor.execute(sql)
+
+        except mysql.connector.Error as e:
+            logger.error('MySQL execute error: %s', e)
+            return False
+
+        return True
+
+    def executemany(self, sql, values):
+        try:
+            self.cursor.executemany(sql, values)
+        except mysql.connector.Error as e:
+            logger.error('MySQL executemany error: %s', e)
+            return False
+        return True
+
 class EinsteinMySQLdb:
     # The EinsteinDB connection class
     def __init__(self, host, user, passwd, edb, port=3306, charset='utf8', cursorclass=None):
@@ -210,15 +321,36 @@ class EinsteinMySQLdb:
         
     def _connect(self):
         try:
-            self._conn = MySQLdb.connect(host=self.host,
-                                         user=self.user,
-                                         passwd=self.passwd,
-                                         edb=self.edb,
-                                         port=self.port,
-                                         charset=self.charset,
-                                         cursorclass=self.cursor
-                                         
-                                            )
+            self._conn = MySQLdb.connect( host=self.host, user=self.user, passwd=self.passwd, db=self.edb, port=self.port, charset=self.charset, cursorclass=self.cursor )
+            self._cursor = self._conn.cursor()
+
+        #
+
+        except MySQLdb.Error as e:
+            logger.error('EinsteinDB connect error: %s', e)
+            return False
+
+    @classmethod
+    def connect(cls, host, user, passwd, edb, port):
+        return cls(host, user, passwd, edb, port)
+
+
+
+    def close(self):
+        try:
+            self._cursor.close()
+            self._conn.close()
+
+        except MySQLdb.Error as e:
+            logger.error('EinsteinDB close error: %s', e)
+            return False
+
+        return True
+
+    def query(self, sql):
+        try:
+            self._cursor.execute(sql)
+            return self._cursor.fetchall()
         except Exception as e:
             logger.error("connect database failed, %s" % e)
             os_quit(Err.MYSQL_CONNECT_ERR, "host:%s,port:%s,user:%s" % (self.host, self.port, self.user))
@@ -318,7 +450,8 @@ class database:
             return False
         
     # get the query result set
-    def fetch_many(self, sql, size=100, json=True):
+    def fetch_many(self, sql, size=100, json=True, data=None):
+
         res = ''
         if (self._conn):
             try:
@@ -366,10 +499,23 @@ class database:
             return False
         
     # get the query result set
-    def fetch_desc_all(self, sql, json=True):
+    def fetch_desc_all(self, sql, json=True, data=None):
         res = ''
         if (self._conn):
             try:
+                self._cursor.execute(sql)
+                res = self._cursor.description
+                if json:
+                    columns = [col[0] for col in self._cursor.description]
+                    return dict(zip(columns, res))
+                else:
+                    return res
+            except Exception as data:
+                self._logger.error("fetch desc all failed, %s" % data)
+                os_quit(Err.MYSQL_FETCHDESCALL_ERR, "sql:%s" % sql)
+                return False
+            try:
+
                 self._cursor.execute(sql)
                 res = self._cursor.description
                 if json:
@@ -380,7 +526,7 @@ class database:
                     ]
                 else:
                     return res
-            except Exception, data:
+            except Exception as data:
                 self._logger.error("fetch desc all failed, %s" % data)
                 os_quit(Err.MYSQL_FETCHDESCALL_ERR, "sql:%s" % sql)
                 return False
@@ -388,7 +534,9 @@ class database:
             self._logger.error("fetch desc all failed, %s" % data)
             os_quit(Err.MYSQL_FETCHDESCALL_ERR, "sql:%s" % sql)
             return False
-        
+
+
+
     # get the query result set
     def fetch_desc_one(self, sql, json=True, data=None):
         res = ''
@@ -953,7 +1101,7 @@ class TencentServer(MySQLEnv):
         Ricci.init_Ricci(instance,model_detail["Ricci"])
         self.default_Ricci = Ricci.get_init_Ricci()
 
-    def _set_params(self, ricci):
+    def _set_params(self, ricci, CONST=None):
         """ Set mysql parameters by send GET requests to server
         Args:
             ricci: dict, mysql parameters

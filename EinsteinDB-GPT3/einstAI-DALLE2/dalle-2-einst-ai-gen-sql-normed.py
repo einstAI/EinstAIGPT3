@@ -55,6 +55,21 @@ for i in range(10):
 
     # we need to save the model
 
+
+def test():
+    print('Testing...')
+    env = ReadEnv(tconfig)
+    state = env.reset()
+    for i in range(tconfig['num_steps']):
+        action = env.get_action(state)
+        next_state, reward, done, info = env.step(action)
+        state = next_state
+        if done:
+            break
+    env.close()
+    print('Testing Done')
+
+
 if tconfig.phase == 'train':
     train()
 elif tconfig.phase == 'test':

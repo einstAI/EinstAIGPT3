@@ -35,6 +35,11 @@
           <option value="AML.Synthetic.deepdb.deepdb_job_ranges.rspn.algorithms.expectations.rspn" />
           <option value="python2x3" />
           <option value="AML.Synthetic.deepdb.deepdb_job_ranges.aqp_spn.util.bloom_filter.*" />
+          <option value="AML.Transformers.stochastic_forager.preprocessing.pattern2totalnum" />
+          <option value="bool.autocommit" />
+          <option value="bool.rollback" />
+          <option value="bool.commit" />
+          <option value="bool.begin" />
         </list>
       </option>
     </inspection_tool>

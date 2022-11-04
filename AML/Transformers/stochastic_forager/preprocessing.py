@@ -4,16 +4,54 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-min_max_file = '/home/jintao/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/data/column_min_max_vals.csv'
-datasets_dir = '/home/jintao/CardinalityEstimationBenchmark/Distinct-Value-High/'
+min_max_file = 'min_max.csv'
+datasets_dir = 'datasets'
+
+
+def prepare_pattern_workload(param):
+    # Prepare the training data for the pattern workload
+
+
+pattern2training, pattern2truecard, min_card_log, max_card_log = prepare_pattern_workload('workload')
+with open('pattern2training.pkl', 'wb') as f:
+    pickle.dump(pattern2training, f)
+with open('pattern2truecard.pkl', 'wb') as f:
+    pickle.dump(pattern2truecard, f)
+
+with open('pattern2training.pkl', 'rb') as f:
+    pattern2training = pickle.load(f)
+
+def prepare_pattern_workload(path):
+    pattern2training = {}
+    with open('pattern2totalmem.pkl', 'rb') as f:
+        pattern2totalnum = pickle.load(f)
+    pattern2truecard = {}
+    # pattern2totalmem = {}
+min_card_log = 100000000
+max_card_log = 0
+for pattern in tqdm(pattern2totalnum.keys()):
+    if pattern not in pattern2training:
+        continue
+    pattern2training[pattern] = np.array(pattern2training[pattern])
+    if pattern2totalnum[pattern] < min_card_log:
+        min_card_log = pattern2totalnum[pattern]
+    if pattern2totalnum[pattern] > max_card_log:
+        max_card_log = pattern2totalnum[pattern]
+    pattern2training[pattern] = []
+    for i in range(100):
+        pattern2training[pattern].append(pattern2totalnum[pattern])
+    # pattern2totalmem[pattern] = pattern2totalnum[pattern]
+    pattern2truecard[pattern] = np.array(pattern2truecard[pattern])
+    pattern2truecard[pattern] = np.log(pattern2truecard[pattern] * pattern2totalnum[pattern] + 1.0)
+
+    return pattern2training, pattern2truecard, min_card_log, max_card_log, pattern2totalmem
+
 
 
 def prepare_pattern_workload(path):
     pattern2training = {}
-    with open('pattern2totalnum.pkl', 'rb') as f:
+    with open('pattern2totalmem.pkl', 'rb') as f:
         pattern2totalnum = pickle.load(f)
-    pattern2truecard = {}
-    # pattern2totalnum = {}
     minmax = pd.read_csv(min_max_file)
     minmax = minmax.set_index('name')
     min_card_log = 999999999999.0
@@ -94,12 +132,12 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Quick Sel Preprocessing')
     parser.add_argument('--raw-file', type=str, help='sqls to be parsed',
-                        default='/home/jintao/CardinalityEstimationBenchmark/train-test-data/cols-sql/4/test-only4-num.sql')
+                        default='../../data/tpch/tpch_100M/tpch_100M.sql')
     parser.add_argument('--min-max-file', type=str, help='Min Max',
-                        default='/home/jintao/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/data/column_min_max_vals.csv')
+                        default='../../data/tpch/tpch_100M/min_max.csv')
     parser.add_argument('--datasets-dir', type=str, help='datasets_dir',
-                        default='/home/jintao/CardinalityEstimationBenchmark/Distinct-Value-High/')
-    parser.add_argument('--output-dir', type=str, help='output relative directory', default='JOB/cols-sql/2/test')
+                        default='../../data/tpch/tpch_100M')
+    parser.add_argument('--output-dir', type=str, help='output_dir',)
     args = parser.parse_args()
 
     min_max_file = args.min_max_file

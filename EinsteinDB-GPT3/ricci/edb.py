@@ -90,11 +90,6 @@ class EDBPostgres(EDB):
         except Exception as e:
             raise EDBError('create table %s failed, error: %s' % (table_name, e))
 
-            ##changelog: add a new exception
-            except Exception as e:
-
-                raise EDBError('create table %s failed, error: %s' % (table_name, e))
-
 def drop_table(self, table_name):
     """drop table"""
     try:
@@ -103,12 +98,10 @@ def drop_table(self, table_name):
             return True
         else:
             return False
+    except Exception as e:
+        raise EDBError('drop table %s failed, error: %s' % (table_name, e))
 
-            ##changelog: add a new exception
-            except Exception as e:
-                raise EDBError('drop table %s failed, error: %s' % (table_name, e))
 
-def insert(self, table_name, data):
     """insert data"""
     try:
         if isinstance(data, list):
@@ -122,11 +115,48 @@ def insert(self, table_name, data):
         raise EDBError('insert data to table %s failed, error: %s' % (table_name, e))
 
 
-    def drop_table(self, table_name):
-            raise EDBConnectionError(
-                'create table %s failed, error: %s' % (table_name, e))
+def update_data(self, table_name, data, condition):
+    """update data"""
+    try:
+        if isinstance(data, list):
+            for item in data:
+                self.session.query(table_name).filter(condition).update(item)
+        else:
+            self.session.query(table_name).filter(condition).update(data)
+        self.session.commit()
+        return True
 
-    def insert(self, table_name, data):
+    except Exception as e:
+        raise EDBError('update data to table %s failed, error: %s' % (table_name, e))
+
+def delete_data(self, table_name, condition):
+
+    def drop_table(self, table_name):
+        """drop table"""
+        try:
+
+            if self.engine.dialect.has_table(self.engine, table_name):
+                self.Base.metadata.drop_all(self.engine)
+                return True
+            else:
+                return False
+        except Exception as e:
+            raise EDBError('drop table %s failed, error: %s' % (table_name, e))
+
+    def insert_data(self, table_name, data):
+        """insert data"""
+        try:
+            if isinstance(data, list):
+                for item in data:
+                    self.session.add(item)
+            else:
+                self.session.add(data)
+            self.session.commit()
+            return True
+        except Exception as e:
+            raise EDBError('insert data to table %s failed, error: %s' % (table_name, e))
+
+
 
 
 class EinsteinMySQLdb:
@@ -177,8 +207,16 @@ class EinsteinMySQLdb:
 
         return result
 
+    @classmethod
+    def connect(cls, host, user, passwd, edb, port):
+        return cls(host, user, passwd, edb, port)
+
+
+
 
 class Err:
+    MYSQL_CONNECT_ERR = 'mysql connect error'
+
     def __init__(self, err):
         self.err = err
 
@@ -261,7 +299,7 @@ class database:
                 self._cursor.execute(sql)
                 self._conn.commit()
                 flag = True
-            except Exception, data:
+            except Exception as data:
                 flag = False
                 self._logger.warn("update database exception, %s" % data)
                 os_quit(Err.MYSQL_EXEC_ERR,sql)
@@ -275,7 +313,7 @@ class database:
                     self._cursor.close()
                 if(type(self._conn)=='object'):
                     self._conn.close()
-            except Exception, data:
+            except Exception as data:
                 self._logger.warn("close database exception, %s,%s,%s" % (data, type(self._cursor), type(self._conn)))
 
 
@@ -301,6 +339,39 @@ class EinsteinDB:
         self._conn = self.connectMySQL()
         if(self._conn):
             self._cursor = self._conn.cursor()
+            self._logger.info("connect database success")
+            self._conn.set_character_set('utf8')
+            self._cursor.execute('SET NAMES utf8;')
+            self._cursor.execute('SET CHARACTER SET utf8;')
+            self._cursor.execute('SET character_set_connection=utf8;')
+            self._logger.info("set database charset success")
+            #char = self._conn.character_set_name()
+            char = self._conn.get_character_set_info()
+            self._logger.info("database charset is %s" % char)
+
+            if not self._dbname:
+                self._dbname = self._conn.get_db()
+
+            self._logger.info("database name is %s" % self._dbname)
+        else:
+            self._logger.error("connect database failed")
+            os_quit(Err.MYSQL_CONNECT_ERR,"host:%s,port:%s,user:%s" % (self._dbhost,self._dbport,self._dbuser))
+
+
+            #Transaction support
+    def begin(self):
+        self._conn.autocommit(False)
+        self._conn.begin()
+            # We method commit() and rollback() to commit or rollback the transaction
+    def commit(self):
+        self._conn.commit()
+    def rollback(self):
+        self._conn.rollback()
+    def autocommit(self, flag):
+        self._conn.autocommit(flag)
+
+        self._conn.commit()
+
 
      def connectMySQL(self):
         conn = False
@@ -357,3 +428,6 @@ class EDBQueryError:
 
     def __str__(self):
         return repr(self.msg)
+
+
+
