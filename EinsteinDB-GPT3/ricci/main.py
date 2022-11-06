@@ -1,16 +1,16 @@
 import sys
 import time
 import numpy as np
-from spn.algorithms.Inference import log_likelihood
-from spn.structure.Base import Sum, Product, assign_ids, rebuild_scopes_bottom_up
-from spn.structure.leaves.parametric.Parametric import Categorical, Gaussian
-from spn.structure.leaves.parametric.Parametric import Bernoulli
-from spn.structure.leaves.parametric.Parametric import Poisson
-from spn.structure.leaves.parametric.Parametric import Gamma
-from spn.structure.leaves.parametric.Parametric import LogNormal
-from spn.structure.leaves.parametric.Parametric import Geometric
-from spn.structure.leaves.parametric.Parametric import Exponential
-from spn.structure.leaves.parametric.Parametric import Beta
+from FACE.algorithms.Inference import log_likelihood
+from FACE.structure.Base import Sum, Product, assign_ids, rebuild_scopes_bottom_up
+from FACE.structure.leaves.parametric.Parametric import Categorical, Gaussian
+from FACE.structure.leaves.parametric.Parametric import Bernoulli
+from FACE.structure.leaves.parametric.Parametric import Poisson
+from FACE.structure.leaves.parametric.Parametric import Gamma
+from FACE.structure.leaves.parametric.Parametric import LogNormal
+from FACE.structure.leaves.parametric.Parametric import Geometric
+from FACE.structure.leaves.parametric.Parametric import Exponential
+from FACE.structure.leaves.parametric.Parametric import Beta
 
 
 def einstAIActorCritic(env, sess, learning_rate, train_min_size, size_mem, size_predict_mem):
@@ -22,9 +22,9 @@ def einstAIActorCritic(env, sess, learning_rate, train_min_size, size_mem, size_
     # from aqp_spn.aqp_leaves import Categorical
     # from aqp_spn.aqp_leaves import IdentityNumericLeaf
     # from sklearn.cluster import KMeans
-    # from spn.algorithms.splitting.Base import preproc, split_data_by_clusters
-    # from spn.algorithms.splitting.RDC import getIndependentRDCGroups_py
-    # from spn.structure.StatisticalTypes import MetaType
+    # from FACE.algorithms.splitting.Base import preproc, split_data_by_clusters
+    # from FACE.algorithms.splitting.RDC import getIndependentRDCGroups_py
+    # from FACE.structure.StatisticalTypes import MetaType
     #
     # logger = logging.getLogger(__name__)
     # MAX_UNIQUE_LEAF_VALUES = 10000
@@ -76,7 +76,7 @@ def einstAIActorCritic(env, sess, learning_rate, train_min_size, size_mem, size_
 
 
 
-def expectation(spn, feature_scope, inverted_features, ranges, node_expectation=None, node_likelihoods=None,
+def expectation(FACE, feature_scope, inverted_features, ranges, node_expectation=None, node_likelihoods=None,
 
                 use_generated_code=False, spn_id=None, meta_types=None, gen_code_stats=None):
 
@@ -106,7 +106,7 @@ def expectation(spn, feature_scope, inverted_features, ranges, node_expectation=
             time_start = perf_counter()
             import optimized_inference
 
-            spn_func = getattr(optimized_inference, f'spn{spn_id}')
+            spn_func = getattr(optimized_inference, f'FACE{spn_id}')
             result = np.array([[spn_func(*parameters)]])
 
             time_end = perf_counter()
@@ -120,15 +120,15 @@ def expectation(spn, feature_scope, inverted_features, ranges, node_expectation=
 
         # lightweight non-batch version
         if not use_generated_code and not applicable:
-            if isinstance(spn, Sum):
+            if isinstance(FACE, Sum):
                 return np.array([[sum([p * expectation(c, feature_scope, inverted_features, ranges, node_expectation,
                                                        node_likelihoods, use_generated_code, spn_id, meta_types,
-                                                       gen_code_stats)[0, 0] for p, c in zip(spn.weights, spn.children)])]])
-            elif isinstance(spn, Product):
+                                                       gen_code_stats)[0, 0] for p, c in zip(FACE.weights, FACE.children)])]])
+            elif isinstance(FACE, Product):
                 return np.array([[np.prod([expectation(c, feature_scope, inverted_features, ranges, node_expectation,
                                                        node_likelihoods, use_generated_code, spn_id, meta_types,
-                                                       gen_code_stats)[0, 0] for c in spn.children])]])
-            elif isinstance(spn, Categorical): __name__ == "__main__":
+                                                       gen_code_stats)[0, 0] for c in FACE.children])]])
+            elif isinstance(FACE, Categorical): __name__ == "__main__":
 
     argus = parse_args()
 

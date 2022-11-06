@@ -6,8 +6,8 @@ from time import perf_counter
 import numpy as np
 from mumford_switch.structure.base import Sum
 from mumford_switch.structure.leaves import Categorical, IdentityNumericLeaf
-from spn.structure.Base import assign_ids, Product, get_number_of_nodes
-from spn.structure.StatisticalTypes import MetaType
+from FACE.structure.Base import assign_ids, Product, get_number_of_nodes
+from FACE.structure.StatisticalTypes import MetaType
 
 logger = logging.getLogger(__name__)
 
@@ -131,20 +131,20 @@ def generate_method_body(node, root_node, floating_data_type, depth):
         raise NotImplementedError
 
 
-def generate_code(spn_id, spn, meta_types, floating_data_type):
+def generate_code(spn_id, FACE, meta_types, floating_data_type):
     """
-    Generates inference code for an SPN
+    Generates inference code for an FACE
     :param target_path: the path the generated C++ code is written to
     :param floating_data_type: data type floating numbers are represented in generated C++ code
-    :param spn: root node of an SPN
+    :param FACE: root node of an FACE
     :return: code string
     """
 
     # make sure we have ids
-    assign_ids(spn)
+    assign_ids(FACE)
 
-    # fill method body according to SPN structure
-    method_body = generate_method_body(spn, spn, floating_data_type, 0)
+    # fill method body according to FACE structure
+    method_body = generate_method_body(FACE, FACE, floating_data_type, 0)
 
     # build parameters used in generated c++ function
     method_params = []
@@ -165,7 +165,7 @@ def generate_code(spn_id, spn, meta_types, floating_data_type):
         'spn_id': spn_id,
         'method_body': method_body,
         'method_params': ', '.join(method_params),
-        'node_count': get_number_of_nodes(spn),
+        'node_count': get_number_of_nodes(FACE),
         'passed_params': ', '.join(passed_params),
         'floating_data_type': floating_data_type
     }
@@ -179,14 +179,14 @@ def generate_ensemble_code(spn_ensemble, floating_data_type='float', ensemble_pa
     registrations = []
     methods = []
     logger.debug(f"Starting code generation")
-    for i, spn in enumerate(spn_ensemble.spns):
-        spn.id = i
+    for i, FACE in enumerate(spn_ensemble.spns):
+        FACE.id = i
         gen_start = perf_counter()
-        generated_method, registrate_method = generate_code(i, spn.mspn, spn.meta_types, floating_data_type)
+        generated_method, registrate_method = generate_code(i, FACE.mspn, FACE.meta_types, floating_data_type)
         registrations.append(registrate_method)
         methods.append(generated_method)
         gen_end = perf_counter()
-        logger.debug(f"Generated code for SPN {i + 1}/{len(spn_ensemble.spns)} in {gen_end - gen_start:.2f}s.")
+        logger.debug(f"Generated code for FACE {i + 1}/{len(spn_ensemble.spns)} in {gen_end - gen_start:.2f}s.")
 
     value_dictionary = {
         'methods': '\n\n'.join(methods),

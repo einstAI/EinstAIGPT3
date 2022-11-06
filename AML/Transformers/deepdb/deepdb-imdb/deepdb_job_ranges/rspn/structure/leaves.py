@@ -1,6 +1,6 @@
 import numpy as np
-from spn.structure.Base import Leaf
-from spn.structure.leaves.parametric.Parametric import Parametric
+from FACE.structure.Base import Leaf
+from FACE.structure.leaves.parametric.Parametric import Parametric
 
 
 class Categorical(Parametric):
@@ -8,7 +8,7 @@ class Categorical(Parametric):
     Implements a univariate categorical distribution with k parameters
     """
 
-    from spn.structure.StatisticalTypes import Type
+    from FACE.structure.StatisticalTypes import Type
     from collections import namedtuple
 
     type = Type.CATEGORICAL

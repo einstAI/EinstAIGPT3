@@ -9,8 +9,8 @@ from mumford_switch.algorithms.validity.validity import is_valid
 from mumford_switch.learning.rspn_learning import learn_mspn
 from mumford_switch.structure.leaves import IdentityNumericLeaf, identity_expectation, Categorical, categorical_likelihood_range, \
     identity_likelihood_range
-from spn.structure.Base import Context
-from spn.structure.StatisticalTypes import MetaType
+from FACE.structure.Base import Context
+from FACE.structure.StatisticalTypes import MetaType
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +120,7 @@ class mumford_switch:
         assert is_valid(self.mspn, check_ids=True)
         learn_end_t = time.perf_counter()
         self.learn_time = learn_end_t - learn_start_t
-        logging.debug(f"Built SPN in {learn_end_t - learn_start_t} sec")
+        logging.debug(f"Built FACE in {learn_end_t - learn_start_t} sec")
 
         # statistics
         self.rdc_threshold = rdc_threshold
@@ -239,7 +239,7 @@ class mumford_switch:
 
         v_x = e_x_sq - e_x * e_x
 
-        # Indeed divide by sample size of SPN not only qualifying tuples. Because this is not a conditional expectation.
+        # Indeed divide by sample size of FACE not only qualifying tuples. Because this is not a conditional expectation.
         std = np.sqrt(v_x / n)
 
         return std, e_x

@@ -1,5 +1,5 @@
 import numpy as np
-from spn.structure.Base import Node, Leaf
+from FACE.structure.Base import Node, Leaf
 
 
 class Parametric(Leaf):
@@ -48,7 +48,7 @@ class Categorical(Parametric):
     p(\{\pi_{k}\}) = Dir(\boldsymbol\alpha)
     """
 
-    from spn.structure.StatisticalTypes import Type
+    from FACE.structure.StatisticalTypes import Type
     from collections import namedtuple
 
     type = Type.CATEGORICAL
@@ -168,7 +168,7 @@ class IdentityNumericLeaf(Leaf):
 def _update_context_no_unique_values(metadata, column, unique_values):
     """
     Updates the fields no_unique_values and domains of the root node (ensemble)
-    from the spn this node belongs to
+    from the FACE this node belongs to
     :param node: 
     :return: 
     """

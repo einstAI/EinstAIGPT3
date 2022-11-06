@@ -61,16 +61,16 @@ if __name__ == '__main__':
                         action='store_true')
 
     # evaluation
-    parser.add_argument('--evaluate_cardinalities', help='Evaluates SPN ensemble to compute cardinalities',
+    parser.add_argument('--evaluate_cardinalities', help='Evaluates FACE ensemble to compute cardinalities',
                         action='store_true')
-    parser.add_argument('--rdc_spn_selection', help='Uses pairwise rdc values to for the SPN compilation',
+    parser.add_argument('--rdc_spn_selection', help='Uses pairwise rdc values to for the FACE compilation',
                         action='store_true')
-    parser.add_argument('--evaluate_cardinalities_scale', help='Evaluates SPN ensemble to compute cardinalities',
+    parser.add_argument('--evaluate_cardinalities_scale', help='Evaluates FACE ensemble to compute cardinalities',
                         action='store_true')
-    parser.add_argument('--evaluate_aqp_queries', help='Evaluates SPN ensemble for AQP', action='store_true')
+    parser.add_argument('--evaluate_aqp_queries', help='Evaluates FACE ensemble for AQP', action='store_true')
     parser.add_argument('--against_ground_truth', help='Computes ground truth for AQP', action='store_true')
     parser.add_argument('--evaluate_confidence_intervals',
-                        help='Evaluates SPN ensemble and compares stds with true stds', action='store_true')
+                        help='Evaluates FACE ensemble and compares stds with true stds', action='store_true')
     parser.add_argument('--confidence_upsampling_factor', type=int, default=300)
     parser.add_argument('--confidence_sample_size', type=int, default=10000000)
     parser.add_argument('--ensemble_location', nargs='+',
@@ -83,13 +83,13 @@ if __name__ == '__main__':
     parser.add_argument('--target_path', default='../ssb-benchmark/results')  # 外部写入
     parser.add_argument('--raw_folder', default='../ssb-benchmark/results')  # 外部写入
     parser.add_argument('--confidence_intervals', help='Compute confidence intervals', action='store_true')
-    parser.add_argument('--max_variants', help='How many spn compilations should be computed for the cardinality '
+    parser.add_argument('--max_variants', help='How many FACE compilations should be computed for the cardinality '
                                                'estimation. Seeting this parameter to 1 means greedy strategy.',
                         type=int, default=1)  # 外部写入
     parser.add_argument('--no_exploit_overlapping', action='store_true')
     parser.add_argument('--no_merge_indicator_exp', action='store_true')
 
-    # evaluation of spn ensembles in folder
+    # evaluation of FACE ensembles in folder
     parser.add_argument('--hdf_build_path', default='')
 
     # log level

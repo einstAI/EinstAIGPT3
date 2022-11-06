@@ -1,4 +1,4 @@
-from spn.structure.Base import Node
+from FACE.structure.Base import Node
 
 
 class Sum(Node):

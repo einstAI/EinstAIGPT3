@@ -31,7 +31,7 @@ class Table:
             self.fd_list = [(table_name + '.' + fd_source, table_name + '.' + fd_dest) for fd_source, fd_dest in
                             fd_list]
 
-        # additional attribute indicating whether tuple is NULL (can occur since we learn SPN on FULL OUTER JOIN)
+        # additional attribute indicating whether tuple is NULL (can occur since we learn FACE on FULL OUTER JOIN)
         if table_nn_attribute is None:
             self.table_nn_attribute = self.table_name + '_nn'
 

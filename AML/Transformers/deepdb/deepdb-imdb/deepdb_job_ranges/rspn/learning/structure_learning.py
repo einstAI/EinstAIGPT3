@@ -8,8 +8,8 @@ import numpy as np
 from mumford_switch.algorithms.transform_structure import Prune
 from mumford_switch.algorithms.validity.validity import is_valid
 from mumford_switch.structure.base import Sum
-from spn.algorithms.StructureLearning import default_slicer
-from spn.structure.Base import assign_ids, Product
+from FACE.algorithms.StructureLearning import default_slicer
+from FACE.structure.Base import assign_ids, Product
 
 logger = logging.getLogger(__name__)
 
@@ -294,10 +294,10 @@ def learn_structure(
     node = root.children[0]
     assign_ids(node)
     valid, err = is_valid(node)
-    assert valid, "invalid spn: " + err
+    assert valid, "invalid FACE: " + err
     node = Prune(node)
     valid, err = is_valid(node)
-    assert valid, "invalid spn: " + err
+    assert valid, "invalid FACE: " + err
 
     return node
 

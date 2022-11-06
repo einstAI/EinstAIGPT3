@@ -1,357 +1,286 @@
-# DeepDB: Learn from Data, not from Queries!
+# torchquad
+<!--
+*** Based on https://github.com/othneildrew/Best-README-Template
+-->
 
-DeepDB is a data-driven learned database component achieving state-of-the-art-performance in cardinality estimation and 
-approximate query processing (AQP). This is the implementation described in 
+![Read the Docs (version)](https://img.shields.io/readthedocs/torchquad/main?style=flat-square) ![GitHub Workflow Status (branch)](https://img.shields.io/github/workflow/status/esa/torchquad/Running%20tests/main?style=flat-square) ![GitHub last commit](https://img.shields.io/github/last-commit/esa/torchquad?style=flat-square)
+![GitHub](https://img.shields.io/github/license/esa/torchquad?style=flat-square) ![Conda (channel only)](https://img.shields.io/conda/vn/conda-forge/torchquad?style=flat-square) ![PyPI](https://img.shields.io/pypi/v/torchquad?style=flat-square) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/torchquad?style=flat-square)
 
-Benjamin Hilprecht, Andreas Schmidt, Moritz Kulessa, Alejandro Molina, Kristian Kersting, Carsten Binnig: 
-"DeepDB: Learn from Data, not from Queries!", VLDB'2020. [[PDF]](https://arxiv.org/abs/1909.00607)
+![GitHub contributors](https://img.shields.io/github/contributors/esa/torchquad?style=flat-square)
+![GitHub issues](https://img.shields.io/github/issues/esa/torchquad?style=flat-square) ![GitHub pull requests](https://img.shields.io/github/issues-pr/esa/torchquad?style=flat-square)
+![Conda](https://img.shields.io/conda/dn/conda-forge/torchquad?style=flat-square) ![PyPI - Downloads](https://img.shields.io/pypi/dm/torchquad?style=flat-square)
+[![JOSS](https://joss.theoj.org/papers/d6f22f83f1a889ddf83b3c2e0cd0919c/status.svg)](https://joss.theoj.org/papers/d6f22f83f1a889ddf83b3c2e0cd0919c?style=flat-square)
 
-![DeepDB Overview](baselines/plots/overview.png "DeepDB Overview")
-
-# Setup
-Tested with python3.7 and python3.8
-```
-git clone https://github.com/DataManagementLab/deepdb-public.git
-cd deepdb-public
-sudo apt install -y libpq-dev gcc python3-dev
-python3 -m venv venv
-source venv/bin/activate
-pip3 install -r requirements.txt
-```
-
-For python3.8: Sometimes spflow fails, in this case remove spflow from requirements.txt, install them and run
-```
-pip3 install spflow --no-deps
-```
-
-# Reproduce Experiments
-
-## Cardinality Estimation
-Download the [Job dataset](http://homepages.cwi.nl/~boncz/job/imdb.tgz).
-Generate hdf files from csvs.
-```
-python3 maqp.py --generate_hdf
-    --dataset imdb-light
-    --csv_seperator ,
-    --csv_path ../imdb-benchmark
-    --hdf_path ../imdb-benchmark/gen_single_light
-    --max_rows_per_hdf_file 100000000
-```
-
-Generate sampled hdf files from csvs.
-```
-python3 maqp.py --generate_sampled_hdfs
-    --dataset imdb-light
-    --hdf_path ../imdb-benchmark/gen_single_light
-    --max_rows_per_hdf_file 100000000
-    --hdf_sample_size 10000
-```
-
-Learn ensemble with the optimized rdc strategy (requires postgres with imdb dataset)
-```
-python3 maqp.py --generate_ensemble
-    --dataset imdb-light 
-    --samples_per_spn 10000000 10000000 1000000 1000000 1000000
-    --ensemble_strategy rdc_based
-    --hdf_path ../imdb-benchmark/gen_single_light
-    --max_rows_per_hdf_file 100000000
-    --samples_rdc_ensemble_tests 10000
-    --ensemble_path ../imdb-benchmark/spn_ensembles
-    --database_name imdb
-    --post_sampling_factor 10 10 5 1 1
-    --ensemble_budget_factor 5
-    --ensemble_max_no_joins 3
-    --pairwise_rdc_path ../imdb-benchmark/spn_ensembles/pairwise_rdc.pkl
-```
-
-Alternatively: Learn base ensemble over different tables with naive strategy. 
-(Does not work with different dataset sizes because join sizes are hard coded but does not require postgres)
-```
-python3 maqp.py --generate_ensemble
-    --dataset imdb-light 
-    --samples_per_spn 1000000 1000000 1000000 1000000 1000000
-    --ensemble_strategy relationship
-    --hdf_path ../imdb-benchmark/gen_single_light
-    --ensemble_path ../imdb-benchmark/spn_ensembles
-    --max_rows_per_hdf_file 100000000
-    --post_sampling_factor 10 10 5 1 1
-```
-
-Evaluate performance for queries.
-```
-python3 maqp.py --evaluate_cardinalities
-    --rdc_spn_selection
-    --max_variants 1
-    --pairwise_rdc_path ../imdb-benchmark/spn_ensembles/pairwise_rdc.pkl
-    --dataset imdb-light
-    --target_path ./baselines/cardinality_estimation/results/deepDB/imdb_light_model_based_budget_5.csv
-    --ensemble_location ../imdb-benchmark/spn_ensembles/ensemble_join_3_budget_5_10000000.pkl
-    --query_file_location ./benchmarks/job-light/sql/job_light_queries.sql
-    --ground_truth_file_location ./benchmarks/job-light/sql/job_light_true_cardinalities.csv
-```
-
-## Updates
-
-Conditional incremental learning (i.e., initial learning of all films before 2013, newer films learn incremental)
-```
-python3 maqp.py  --generate_ensemble
-    --dataset imdb-light
-    --samples_per_spn 10000000 10000000 1000000 1000000 1000000
-    --ensemble_strategy rdc_based
-    --hdf_path ../imdb-benchmark/gen_single_light
-    --max_rows_per_hdf_file 100000000
-    --samples_rdc_ensemble_tests 10000
-    --ensemble_path ../imdb-benchmark/spn_ensembles
-    --database_name JOB-light
-    --post_sampling_factor 10 10 5 1 1
-    --ensemble_budget_factor 0
-    --ensemble_max_no_joins 3
-    --pairwise_rdc_path ../imdb-benchmark/spn_ensembles/pairwise_rdc.pkl
-    --incremental_condition "title.production_year<2013"
-```
-
-## Optimized Inference
-Generate the C++ code. (Currently only works for cardinality estimation).
-```
-python3 maqp.py --code_generation 
-    --ensemble_path ../imdb-benchmark/spn_ensembles/ensemble_join_3_budget_5_10000000.pkl
-```
-
-Compile it in a venv with pybind installed. 
-Sometimes installing this yields: `ModuleNotFoundError: No module named 'pip.req'`
-One workaround is to downgrade pip `pip3 install pip==9.0.3` as described [here](https://stackoverflow.com/questions/25192794/no-module-named-pip-req).
-
-The command below works for ubuntu 18.04. Make sure the generated .so file is in the root directory of the project.
-```
-g++ -O3 -Wall -shared -std=c++11 -ftemplate-depth=2048 -ftime-report -fPIC `python3 -m pybind11 --includes` optimized_inference.cpp -o optimized_inference`python3-config --extension-suffix`
-```
-
-If you now want to leverage the module you have to specify it for cardinalities.
-```
-python3 maqp.py --evaluate_cardinalities 
-    --rdc_spn_selection 
-    --max_variants 1 
-    --pairwise_rdc_path ../imdb-benchmark/spn_ensembles/pairwise_rdc.pkl 
-    --dataset imdb-light 
-    --target_path ./baselines/cardinality_estimation/results/deepDB/imdb_light_model_based_budget_5.csv 
-    --ensemble_location ../imdb-benchmark/spn_ensembles/ensemble_join_3_budget_5_10000000.pkl 
-    --query_file_location ./benchmarks/job-light/sql/job_light_queries.sql 
-    --ground_truth_file_location ./benchmarks/job-light/sql/job_light_true_cardinalities.csv 
-    --use_generated_code
-```
-
-## AQP
-### SSB pipeline
-
-Generate standard SSB dataset (Scale Factor=500) and use the correct seperator.
-```
-for i in `ls *.tbl`; do
-    sed 's/|$//' $i > $TMP_DIR/${i/tbl/csv} &
-    echo $i;
-done
-```
-Create lineorder sample
-```
-cat lineorder.csv | awk 'BEGIN {srand()} !/^$/ { if (rand() <= .003333) print $0}' > lineorder_sampled.csv
-```
-
-Generate hdf files from csvs.
-```
-python3 maqp.py --generate_hdf
-    --dataset ssb-500gb
-    --csv_seperator \|
-    --csv_path ../mqp-data/ssb-benchmark
-    --hdf_path ../mqp-data/ssb-benchmark/gen_hdf
-```
-
-Learn the ensemble with a naive strategy.
-```
-python3 maqp.py --generate_ensemble 
-    --dataset ssb-500gb
-    --samples_per_spn 1000000
-    --ensemble_strategy single 
-    --hdf_path ../mqp-data/ssb-benchmark/gen_hdf 
-    --ensemble_path ../mqp-data/ssb-benchmark/spn_ensembles
-    --rdc_threshold 0.3
-    --post_sampling_factor 10
-```
-
-Optional: Compute ground truth for AQP queries (requires postgres with ssb schema).
-```
-python3 maqp.py --aqp_ground_truth
-    --query_file_location ./benchmarks/ssb/sql/aqp_queries.sql
-    --target_path ./benchmarks/ssb/ground_truth_500GB.pkl
-    --database_name ssb
-```
-
-Evaluate the AQP queries.
-```
-python3 maqp.py --evaluate_aqp_queries
-    --dataset ssb-500gb
-    --target_path ./baselines/aqp/results/deepDB/ssb_500gb_model_based.csv
-    --ensemble_location ../mqp-data/ssb-benchmark/spn_ensembles/ensemble_single_ssb-500gb_1000000.pkl
-    --query_file_location ./benchmarks/ssb/sql/aqp_queries.sql
-    --ground_truth_file_location ./benchmarks/ssb/ground_truth_500GB.pkl
-```
-
-Optional: Create the ground truth for confidence interval. (with 10M because we also use 10M samples for the training)
-```
-python3 maqp.py --aqp_ground_truth
-    --query_file_location ./benchmarks/ssb/sql/confidence_queries.sql
-    --target_path ./benchmarks/ssb/confidence_intervals/confidence_interval_10M.pkl
-    --database_name ssb
-```
-
-Evaluate the confidence intervals.
-```
-python3 maqp.py --evaluate_confidence_intervals
-    --dataset ssb-500gb
-    --target_path ./baselines/aqp/results/deepDB/ssb500GB_confidence_intervals.csv
-    --ensemble_location ../mqp-data/ssb-benchmark/spn_ensembles/ensemble_single_ssb-500gb_1000000.pkl
-    --query_file_location ./benchmarks/ssb/sql/aqp_queries.sql
-    --ground_truth_file_location ./benchmarks/ssb/confidence_intervals/confidence_interval_10M.pkl
-    --confidence_upsampling_factor 300
-    --confidence_sample_size 10000000
-```
-
-### Flights pipeline
-Generate flights dataset with scale factor 1 billion using [IDEBench](https://github.com/IDEBench/IDEBench-public) and generate a sample using
-```
-cat dataset.csv | awk 'BEGIN {srand()} !/^$/ { if (rand() <= .01) print $0}' > dataset_sampled.csv
-```
-
-Generate hdf files from csvs.
-```
-python3 maqp.py --generate_hdf
-    --dataset flights1B
-    --csv_seperator ,
-    --csv_path ../mqp-data/flights-benchmark
-    --hdf_path ../mqp-data/flights-benchmark/gen_hdf
-```
-
-Learn the ensemble.
-```
-python3 maqp.py --generate_ensemble 
-    --dataset flights1B
-    --samples_per_spn 10000000 
-    --ensemble_strategy single 
-    --hdf_path ../mqp-data/flights-benchmark/gen_hdf 
-    --ensemble_path ../mqp-data/flights-benchmark/spn_ensembles
-    --rdc_threshold 0.3
-    --post_sampling_factor 10
-```
-
-Optional: Compute ground truth
-```
-python3 maqp.py --aqp_ground_truth
-    --dataset flights1B
-    --query_file_location ./benchmarks/flights/sql/aqp_queries.sql
-    --target_path ./benchmarks/flights/ground_truth_1B.pkl
-    --database_name flights   
-```
-
-Evaluate the AQP queries.
-```  
-python3 maqp.py --evaluate_aqp_queries
-    --dataset flights1B
-    --target_path ./baselines/aqp/results/deepDB/flights1B_model_based.csv
-    --ensemble_location ../mqp-data/flights-benchmark/spn_ensembles/ensemble_single_flights1B_10000000.pkl
-    --query_file_location ./benchmarks/flights/sql/aqp_queries.sql
-    --ground_truth_file_location ./benchmarks/flights/ground_truth_1B.pkl
-```
-
-Optional: Create the ground truth for confidence interval. (with 10M because we also use 10M samples for the training)
-```
-python3 maqp.py --aqp_ground_truth
-    --dataset flights1B
-    --query_file_location ./benchmarks/flights/sql/confidence_queries.sql
-    --target_path ./benchmarks/flights/confidence_intervals/confidence_interval_10M.pkl
-    --database_name flights10M_origsample 
-```
-
-Evaluate the confidence intervals.
-```
-python3 maqp.py --evaluate_confidence_intervals
-    --dataset flights1B
-    --target_path ./baselines/aqp/results/deepDB/flights1B_confidence_intervals.csv
-    --ensemble_location ../mqp-data/flights-benchmark/spn_ensembles/ensemble_single_flights1B_10000000.pkl
-    --query_file_location ./benchmarks/flights/sql/aqp_queries.sql
-    --ground_truth_file_location ./benchmarks/flights/confidence_intervals/confidence_interval_10M.pkl
-    --confidence_upsampling_factor 100
-    --confidence_sample_size 10000000
-```
-
-### TPC-DS (Single Table) pipeline
-As an additional example on how to work with DeepDB, we provide an example on just a single table of the TPC-DS schema for the queries in `./benchmarks/tpc_ds_single_table/sql/aqp_queries.sql`. As a prerequisite, you need a 10 million tuple sample of the store_sales table in the directory `../mqp-data/tpc-ds-benchmark/store_sales_sampled.csv`. Afterwards, 
-you can run the following commands. To compute the ground truth, you need a postgres instance with a 1T TPC-DS dataset.
-
-Generate hdf files from csvs
-```
-python3 maqp.py --generate_hdf
-    --dataset tpc-ds-1t
-    --csv_seperator |
-    --csv_path ../mqp-data/tpc-ds-benchmark
-    --hdf_path ../mqp-data/tpc-ds-benchmark/gen_hdf
-```
-
-Learn the ensemble
-```
-python3 maqp.py --generate_ensemble 
-    --dataset tpc-ds-1t
-    --samples_per_spn 10000000 
-    --ensemble_strategy single 
-    --hdf_path ../mqp-data/tpc-ds-benchmark/gen_hdf
-    --ensemble_path ../mqp-data/tpc-ds-benchmark/spn_ensembles 
-    --rdc_threshold 0.3 
-    --post_sampling_factor 10
-```
-
-Compute ground truth
-```
-python3 maqp.py --aqp_ground_truth
-    --dataset tpc-ds-1t
-    --query_file_location ./benchmarks/tpc_ds_single_table/sql/aqp_queries.sql
-    --target_path ./benchmarks/tpc_ds_single_table/ground_truth_1t.pkl
-    --database_name tcpds
-```
-
-Evaluate the AQP queries
-```
-python3 maqp.py --evaluate_aqp_queries
-    --dataset tpc-ds-1t
-    --target_path ./baselines/aqp/results/deepDB/tpcds1t_model_based.csv
-    --ensemble_location ../mqp-data/tpc-ds-benchmark/spn_ensembles/ensemble_single_tpc-ds-1t_10000000.pkl
-    --query_file_location ./benchmarks/tpc_ds_single_table/sql/aqp_queries.sql
-    --ground_truth_file_location ./benchmarks/tpc_ds_single_table/ground_truth_1t.pkl
-```
-
-# How to experiment with DeepDB on a new Dataset
-- Specify a new schema in the schemas folder 
-- Due to the current implementation, make sure to declare
-    - the primary key,
-    - the filename of the csv sample file,
-    - the correct table size and sample rate,
-    - the relationships among tables if you do not just run queries over a single table,
-    - any non-key functional dependencies (this is rather an implementation detail),
-    - and include all columns in the no-compression list by default (as done for the IMDB benchmark),
-- To further reduce the training time, you can exclude columns you do not need in your experiments (also done in the IMDB benchmark)
-- Generate the HDF/sampled HDF files and learn the mumford_switch ensemble
-- Use the mumford_switch ensemble to answer queries
-- For reference, please check the commands to reproduce the results of the paper
+<!-- PROJECT LOGO -->
+<br />
+<p align="center">
+  <a href="https://github.com/esa/torchquad">
+    <img src="logos/torchquad_white_background_PNG.png" alt="Logo" width="280" height="120">
+  </a>
+  <p align="center">
+    High-performance numerical integration on the GPU with PyTorch, JAX and Tensorflow
+    <br />
+    <a href="https://torchquad.readthedocs.io"><strong>Explore the docs »</strong></a>
+    <br />
+    <br />
+    <a href="https://github.com/esa/torchquad/blob/master/notebooks/Torchquad%20-%20Example%20notebook.ipynb">View Example notebook</a>
+    ·
+    <a href="https://github.com/esa/torchquad/issues">Report Bug</a>
+    ·
+    <a href="https://github.com/esa/torchquad/issues">Request Feature</a>
+  </p>
+</p>
 
 
-# Reference
-If you find this repository useful in your work, please cite our paper:
 
+<!-- TABLE OF CONTENTS -->
+<details open="open">
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#built-with">Built With</a></li>
+      </ul>
+    </li>
+    <li><a href="#goals">Goals</a></li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+        <li><a href="#test">Test</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#FAQ">FAQ</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ol>
+</details>
+
+
+
+<!-- ABOUT THE PROJECT -->
+## About The Project
+
+The torchquad module allows utilizing GPUs for efficient numerical integration with [PyTorch](https://pytorch.org/) and other numerical Python3 modules.
+The software is free to use and is designed for the machine learning community and research groups focusing on topics requiring high-dimensional integration.
+
+### Built With
+
+This project is built with the following packages:
+
+* [autoray](https://github.com/jcmgray/autoray), which means the implemented quadrature supports [NumPy](https://numpy.org/) and can be used for machine learning with modules such as [PyTorch](https://pytorch.org/), [JAX](https://github.com/google/jax/) and [Tensorflow](https://www.tensorflow.org/), where it is fully differentiable
+* [conda](https://docs.conda.io/en/latest/), which will take care of all requirements for you
+
+
+If torchquad proves useful to you, please consider citing the [accompanying paper](https://joss.theoj.org/papers/10.21105/joss.03439).
+
+<!-- GOALS -->
+## Goals
+
+
+* **Supporting science**:  Multidimensional numerical integration is needed in many fields, such as physics (from particle physics to astrophysics), in applied finance, in medical statistics, and others. torchquad aims to assist research groups in such fields, as well as the general machine learning community.
+* **Withstanding the curse of dimensionality**: The [curse of dimensionality](https://en.wikipedia.org/wiki/Curse_of_dimensionality) makes deterministic methods in particular, but also stochastic ones, computationally expensive when the dimensionality increases. However, many integration methods are [embarrassingly parallel](https://en.wikipedia.org/wiki/Embarrassingly_parallel), which means they can strongly benefit from GPU parallelization. The curse of dimensionality still applies but the improved scaling alleviates the computational impact.
+* **Delivering a convenient and functional tool**: torchquad is built with autoray, which means it is [fully differentiable](https://en.wikipedia.org/wiki/Differentiable_programming) if the user chooses, for example, PyTorch as the numerical backend. Furthermore, the library of available and upcoming methods in torchquad offers high-effeciency integration for any need.
+
+
+<!-- GETTING STARTED -->
+## Getting Started
+
+This is a brief guide for how to set up torchquad.
+
+### Prerequisites
+
+We recommend using [conda](https://anaconda.org/conda-forge/torchquad), especially if you want to utilize the GPU.
+With PyTorch it will automatically set up CUDA and the cudatoolkit for you, for example.
+Note that torchquad also works on the CPU; however, it is optimized for GPU usage. torchquad's GPU support is tested only on NVIDIA cards with CUDA. We are investigating future support for AMD cards through [ROCm](https://pytorch.org/blog/pytorch-for-amd-rocm-platform-now-available-as-python-package/).
+
+For a detailed list of required packages and packages for numerical backends,
+please refer to the conda environment files [environment.yml](/environment.yml) and [environment_all_backends.yml](/environment_all_backends.yml).
+torchquad has been tested with JAX 0.2.25, NumPy 1.19.5, PyTorch 1.10.0 and Tensorflow 2.7.0 on Linux; other versions of the backends should work as well but some may require additional setup on other platforms such as Windows.
+
+
+### Installation
+
+The easiest way to install torchquad is simply to
+   ```sh
+   conda install torchquad -c conda-forge
+   ```
+
+Alternatively, it is also possible to use
+   ```sh
+   pip install torchquad
+   ```
+
+The PyTorch backend with CUDA support can be installed with
+   ```sh
+   conda install "cudatoolkit>=11.1" "pytorch>=1.9=*cuda*" -c conda-forge -c pytorch
+   ```
+
+Note that since PyTorch is not yet on *conda-forge* for Windows, we have explicitly included it here using `-c pytorch`.
+Note also that installing PyTorch with *pip* may **not** set it up with CUDA support. Therefore, we recommend to use *conda*.
+
+Here are installation instructions for other numerical backends:
+   ```sh
+   conda install "tensorflow>=2.6.0=cuda*" -c conda-forge
+   pip install "jax[cuda]>=0.2.22" --find-links https://storage.googleapis.com/jax-releases/jax_releases.html # linux only
+   conda install "numpy>=1.19.5" -c conda-forge
+   ```
+
+More installation instructions for numerical backends can be found in
+[environment_all_backends.yml](/environment_all_backends.yml) and at the
+backend documentations, for example
+https://pytorch.org/get-started/locally/,
+https://github.com/google/jax/#installation and
+https://www.tensorflow.org/install/gpu, and often there are multiple ways to
+install them.
+
+
+### Test
+
+After installing `torchquad` and PyTorch through `conda` or `pip`,
+users can test `torchquad`'s correct installation with:
+
+```py
+import torchquad
+torchquad._deployment_test()
 ```
-@inproceedings{deepdb,
-  title={DeepDB: Learn from Data, not from Queries!},
-  author = {Benjamin Hilprecht and Andreas Schmidt and Moritz Kulessa and Alejandro Molina and Kristian Kersting and Carsten Binnig},
-  journal={Proceedings of the VLDB Endowment},
-  volume={13},
-  number={7},
-  pages={992--1005},
-  year={2020},
-  publisher={VLDB Endowment}
-}
+
+After cloning the repository, developers can check the functionality of `torchquad` by running the following command in the `torchquad/tests` directory:
+
+```sh
+pytest
 ```
+
+<!-- USAGE EXAMPLES -->
+## Usage
+
+This is a brief example how torchquad can be used to compute a simple integral with PyTorch. For a more thorough introduction please refer to the [tutorial](https://torchquad.readthedocs.io/en/main/tutorial.html) section in the documentation.
+
+The full documentation can be found on [readthedocs](https://torchquad.readthedocs.io/en/main/).
+
+```Python3
+# To avoid copying things to GPU memory,
+# ideally allocate everything in torch on the GPU
+# and avoid non-torch function calls
+import torch
+from torchquad import MonteCarlo, set_up_backend
+
+# Enable GPU support if available and set the floating point precision
+set_up_backend("torch", data_type="float32")
+
+# The function we want to integrate, in this example
+# f(x0,x1) = sin(x0) + e^x1 for x0=[0,1] and x1=[-1,1]
+# Note that the function needs to support multiple evaluations at once (first
+# dimension of x here)
+# Expected result here is ~3.2698
+def some_function(x):
+    return torch.sin(x[:, 0]) + torch.exp(x[:, 1])
+
+# Declare an integrator;
+# here we use the simple, stochastic Monte Carlo integration method
+mc = MonteCarlo()
+
+# Compute the function integral by sampling 10000 points over domain
+integral_value = mc.integrate(
+    some_function,
+    dim=2,
+    N=10000,
+    integration_domain=[[0, 1], [-1, 1]],
+    backend="torch",
+)
+```
+To change the logger verbosity, set the `TORCHQUAD_LOG_LEVEL` environment
+variable; for example `export TORCHQUAD_LOG_LEVEL=DEBUG`.
+
+You can find all available integrators [here](https://torchquad.readthedocs.io/en/main/integration_methods.html).
+
+<!-- ROADMAP -->
+## Roadmap
+
+See the [open issues](https://github.com/esa/torchquad/issues) for a list of proposed features (and known issues).
+
+
+<!-- PERFORMANCE -->
+## Performance
+
+Using GPUs torchquad scales particularly well with integration methods that offer easy parallelization. For example, below you see error and runtime results for integrating the function `f(x,y,z) = sin(x * (y+1)²) * (z+1)` on a consumer-grade desktop PC.
+
+![](https://github.com/esa/torchquad/blob/main/resources/torchquad_runtime.png?raw=true)
+*Runtime results of the integration. Note the far superior scaling on the GPU (solid line) in comparison to the CPU (dashed and dotted) for both methods.*
+
+![](https://github.com/esa/torchquad/blob/main/resources/torchquad_convergence.png?raw=true)
+*Convergence results of the integration. Note that Simpson quickly reaches floating point precision. Monte Carlo is not competitive here given the low dimensionality of the problem.*
+
+<!-- CONTRIBUTING -->
+## Contributing
+
+The project is open to community contributions. Feel free to open an [issue](https://github.com/esa/torchquad/issues) or write us an email if you would like to discuss a problem or idea first.
+
+If you want to contribute, please
+
+1. Fork the project on [GitHub](https://github.com/esa/torchquad).
+2. Get the most up-to-date code by following this quick guide for installing torchquad from source:
+     1. Get [miniconda](https://docs.conda.io/en/latest/miniconda.html) or similar
+     2. Clone the repo
+      ```sh
+      git clone https://github.com/esa/torchquad.git
+      ```
+     3. With the default configuration, all numerical backends with CUDA
+       support are installed.
+       If this should not happen, comment out unwanted packages in
+       `environment_all_backends.yml`.
+     4. Set up the environment. This creates a conda environment called
+      `torchquad` and installs the required dependencies.
+      ```sh
+      conda env create -f environment_all_backends.yml
+      conda activate torchquad
+      ```
+
+Once the installation is done, you are ready to contribute.
+Please note that PRs should be created from and into the `develop` branch. For each release the develop branch is merged into main.
+
+3. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+4. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+5. Push to the Branch (`git push origin feature/AmazingFeature`)
+6. Open a Pull Request on the `develop` branch, *not* `main` (NB: We autoformat every PR with black. Our GitHub actions may create additional commits on your PR for that reason.)
+
+and we will have a look at your contribution as soon as we can.
+
+Furthermore, please make sure that your PR passes all automated tests. Review will only happen after that.
+Only PRs created on the `develop` branch with all tests passing will be considered. The only exception to this rule is if you want to update the documentation in relation to the current release on conda / pip. In that case you may ask to merge directly into `main`.
+
+<!-- LICENSE -->
+## License
+
+Distributed under the GPL-3.0 License. See [LICENSE](https://github.com/esa/torchquad/blob/main/LICENSE) for more information.
+
+
+<!-- FAQ -->
+## FAQ
+
+  1. Q: `Error enabling CUDA. cuda.is_available() returned False. CPU will be used.`  <br/>A: This error indicates that PyTorch could not find a CUDA-compatible GPU. Either you have no compatible GPU or the necessary CUDA requirements are missing. Using `conda`, you can install them with `conda install cudatoolkit`. For more detailed installation instructions, please refer to the [PyTorch documentation](https://pytorch.org/get-started/locally/).
+
+
+
+
+<!-- CONTACT -->
+## Contact
+
+Created by ESA's [Advanced Concepts Team](https://www.esa.int/gsp/ACT/index.html)
+
+- Pablo Gómez - `pablo.gomez at esa.int`
+- Gabriele Meoni - `gabriele.meoni at esa.int`
+- Håvard Hem Toftevaag - `havard.hem.toftevaag at esa.int`
+
+Project Link: [https://github.com/esa/torchquad](https://github.com/esa/torchquad)
+
+
+
+<!-- ACKNOWLEDGEMENTS
+This README was based on https://github.com/othneildrew/Best-README-Template
+-->

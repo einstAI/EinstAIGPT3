@@ -3,7 +3,7 @@ import logging
 import os
 
 from ensemble_compilation.spn_ensemble import read_ensemble
-from spn.structure.Base import Node, get_nodes_by_type
+from FACE.structure.Base import Node, get_nodes_by_type
 
 logger = logging.getLogger(__name__)
 
@@ -11,21 +11,21 @@ logger = logging.getLogger(__name__)
 def evaluate_spn_statistics(spn_path, target_csv_path, build_time_path):
     csv_list = []
 
-    # SPN learn times
+    # FACE learn times
     for filename in os.listdir(spn_path):
         logger.debug(f'Reading {filename}')
         if not filename.startswith("ensemble") or filename.endswith('.zip'):
             continue
 
         spn_ensemble = read_ensemble(os.path.join(spn_path, filename))
-        for spn in spn_ensemble.spns:
-            num_nodes = len(get_nodes_by_type(spn.mspn, Node))
-            upper_bound = 200 * len(spn.column_names) - 1
+        for FACE in spn_ensemble.spns:
+            num_nodes = len(get_nodes_by_type(FACE.mspn, Node))
+            upper_bound = 200 * len(FACE.column_names) - 1
             # assert num_nodes <= upper_bound, "Num of nodes upper bound is wrong"
-            csv_list.append((filename, spn.learn_time, spn.full_sample_size, spn.min_instances_slice, spn.rdc_threshold,
-                             len(spn.relationship_set), len(spn.table_set),
-                             " - ".join([table for table in spn.table_set]),
-                             len(spn.column_names),
+            csv_list.append((filename, FACE.learn_time, FACE.full_sample_size, FACE.min_instances_slice, FACE.rdc_threshold,
+                             len(FACE.relationship_set), len(FACE.table_set),
+                             " - ".join([table for table in FACE.table_set]),
+                             len(FACE.column_names),
                              num_nodes,
                              upper_bound))
 

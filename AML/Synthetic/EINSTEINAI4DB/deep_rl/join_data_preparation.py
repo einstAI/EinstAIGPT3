@@ -342,7 +342,7 @@ class JoinDataPreparator:
                              drop_redundant_columns=True, max_intermediate_size=math.inf,
                              split_condition=None):
         """
-        Samples from FULL OUTER JOIN to provide training data for SPN.
+        Samples from FULL OUTER JOIN to provide training data for FACE.
         """
         # drop_redundant_columns=False # hyper-parameter
         assert single_table is None or relationship_list is None, "Either specify a single table or a set of relations"

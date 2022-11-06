@@ -20,19 +20,19 @@ logger = logging.getLogger(__name__)
 
 class CombineSPN:
     """
-    An SPN built over a sub-schema.
+    An FACE built over a sub-schema.
 
     Application a) estimate cardinality for arbitrary acyclic sub-query using
     the equation Full_join_size*E(1/multiplier * 1_{c_1 Λ… Λc_n}).
 
-    E.g. We have an SPN built over Customer, Orders and Orderline. What is the
+    E.g. We have an FACE built over Customer, Orders and Orderline. What is the
     cardinality for customers joined with orders made in 2017?
 
     Application b) cardinality per tuple of next neighbour:
      Full_join_size*E(1/multiplier * 1_{c_1 Λ… Λc_n}) / next_neighbour_size
-    This term is required if we merge an SPN into the current cardinality estimation.
+    This term is required if we merge an FACE into the current cardinality estimation.
 
-    E.g. We have an SPN built over Customer and one over Orders and Orderline.
+    E.g. We have an FACE built over Customer and one over Orders and Orderline.
     What is the cardinality for Customers, Orders and Orderline joined with
     Orders.year = 2019?
 
@@ -45,7 +45,7 @@ class CombineSPN:
         self.full_join_size = full_join_size
         self.schema_graph = schema_graph
 
-        # relationships joined for building the SPN
+        # relationships joined for building the FACE
         self.relationship_set = set()
         if relationship_list is None:
             relationship_list = []
@@ -93,7 +93,7 @@ class CombineSPN:
                     conditions.append((table, condition))
 
         # We have to require the tables of the query to be not null
-        # This can happen since we learn the SPN on full outer join
+        # This can happen since we learn the FACE on full outer join
         for table in merged_tables:
             table_obj = self.schema_graph.table_dictionary[table]
             condition = table_obj.table_nn_attribute + ' IS NOT NULL'  # is not null 重要,为了修正
@@ -146,7 +146,7 @@ class CombineSPN:
             table_obj = self.schema_graph.table_dictionary[table]
 
             for relationship in table_obj.incoming_relationships:
-                # only consider if part of relationships of combine-SPN
+                # only consider if part of relationships of combine-FACE
                 if relationship.identifier in self.relationship_set:
 
                     # potentially new table
@@ -156,7 +156,7 @@ class CombineSPN:
                         depth_dict[potential_new_table] = depth_dict[table] + 1
 
             for relationship in table_obj.outgoing_relationships:
-                # only consider if part of relationships of combine-SPN
+                # only consider if part of relationships of combine-FACE
                 if relationship.identifier in self.relationship_set:
 
                     # potentially new table
@@ -184,7 +184,7 @@ class CombineSPN:
             table_obj = self.schema_graph.table_dictionary[table]
 
             for relationship in table_obj.incoming_relationships:
-                # only mergeable if part of SPN and still to be merged in query
+                # only mergeable if part of FACE and still to be merged in query
                 if relationship.identifier in self.relationship_set and \
                         relationship.identifier in query.relationship_set and \
                         relationship.identifier not in relationships:
@@ -192,7 +192,7 @@ class CombineSPN:
                     queue.append(relationship.start)
 
             for relationship in table_obj.outgoing_relationships:
-                # only mergeable if part of SPN and still to be merged in query
+                # only mergeable if part of FACE and still to be merged in query
                 if relationship.identifier in self.relationship_set and \
                         relationship.identifier in query.relationship_set and \
                         relationship.identifier not in relationships:
@@ -217,24 +217,24 @@ def read_ensemble(ensemble_locations, build_reverse_dict=False):
         with open(ensemble_location, 'rb') as handle:
             current_ensemble = pickle.load(handle)
             ensemble.schema_graph = current_ensemble.schema_graph
-            for spn in current_ensemble.spns:
-                logging.debug(f"Including SPN with table_set {spn.table_set} with sampling ratio"
-                              f"({spn.full_sample_size} / {spn.full_join_size})")
-                # logging.debug(f"Stats: ({get_structure_stats(spn.mspn)})")
+            for FACE in current_ensemble.spns:
+                logging.debug(f"Including FACE with table_set {FACE.table_set} with sampling ratio"
+                              f"({FACE.full_sample_size} / {FACE.full_join_size})")
+                # logging.debug(f"Stats: ({get_structure_stats(FACE.mspn)})")
                 # build reverse dict.
                 if build_reverse_dict:
-                    _build_reverse_spn_dict(spn)
-                ensemble.add_spn(spn)
+                    _build_reverse_spn_dict(FACE)
+                ensemble.add_spn(FACE)
     return ensemble
 
 
 def what_if_scenario(what_if_query, ensemble):
     """
-    Create SPN ensemble for what if scenario
+    Create FACE ensemble for what if scenario
 
     :param what_if_query: the query specifying the subpopulation and the percentage change
     :param ensemble: the original ensemble
-    :return: new SPN ensemble where the subpopulation that fulfills conditions occurs more or less frequently depending
+    :return: new FACE ensemble where the subpopulation that fulfills conditions occurs more or less frequently depending
     on the percentage change
     """
     what_if_start_t = perf_counter()
@@ -245,23 +245,23 @@ def what_if_scenario(what_if_query, ensemble):
     what_if_ensemble.cached_expecation_vals = dict()
     affected_tables = set([condition[0] for condition in conditions])
 
-    for spn in what_if_ensemble.spns:
-        if len(spn.table_set.intersection(affected_tables)) == 0:
+    for FACE in what_if_ensemble.spns:
+        if len(FACE.table_set.intersection(affected_tables)) == 0:
             continue
-        projected_conditions = [condition for condition in conditions if condition[0] in spn.table_set]
-        spn_conditions = spn._parse_conditions(projected_conditions)
-        spn_conditions = spn._add_null_values_to_ranges(spn_conditions)
+        projected_conditions = [condition for condition in conditions if condition[0] in FACE.table_set]
+        spn_conditions = FACE._parse_conditions(projected_conditions)
+        spn_conditions = FACE._add_null_values_to_ranges(spn_conditions)
         evidence = spn_conditions[0]
 
         # make sure multiplier means remain unchanged
         force_equal_mean_cols = []
-        for i, column_name in enumerate(spn.column_names):
+        for i, column_name in enumerate(FACE.column_names):
             for relationship in what_if_ensemble.schema_graph.relationships:
                 if relationship.multiplier_attribute_name in column_name or relationship.multiplier_attribute_name_nn in column_name:
                     force_equal_mean_cols.append(i)
 
-        transform_what_if(spn, evidence, percentage_change, force_equal_mean_cols=force_equal_mean_cols,
-                          null_values=spn.null_values, transform_copy=False)
+        transform_what_if(FACE, evidence, percentage_change, force_equal_mean_cols=force_equal_mean_cols,
+                          null_values=FACE.null_values, transform_copy=False)
 
     what_if_end_t = perf_counter()
     logger.debug(f"Created new what if ensemble for conditions {conditions} ({'+' if percentage_change > 0 else ''}"
@@ -270,32 +270,32 @@ def what_if_scenario(what_if_query, ensemble):
     return what_if_ensemble
 
 
-def _build_reverse_spn_dict(spn):
-    spn.table_meta_data['inverted_columns_dict'] = dict()
-    spn.table_meta_data['inverted_fd_dict'] = dict()
-    for table in spn.table_meta_data.keys():
+def _build_reverse_spn_dict(FACE):
+    FACE.table_meta_data['inverted_columns_dict'] = dict()
+    FACE.table_meta_data['inverted_fd_dict'] = dict()
+    for table in FACE.table_meta_data.keys():
         if table == 'inverted_columns_dict' or table == 'inverted_fd_dict':
             continue
-        categorical_colums = spn.table_meta_data[table]['categorical_columns_dict']
+        categorical_colums = FACE.table_meta_data[table]['categorical_columns_dict']
         for categorical_column in categorical_colums.keys():
             inverted_dictionary = dict()
             for k, v in categorical_colums[categorical_column].items():
                 inverted_dictionary[v] = k
-            spn.table_meta_data['inverted_columns_dict'][categorical_column] = inverted_dictionary
-        if spn.table_meta_data[table].get('fd_dict') is not None:
-            fd_colums = spn.table_meta_data[table]['fd_dict']
+            FACE.table_meta_data['inverted_columns_dict'][categorical_column] = inverted_dictionary
+        if FACE.table_meta_data[table].get('fd_dict') is not None:
+            fd_colums = FACE.table_meta_data[table]['fd_dict']
             # dwdate.d_dayofweek -> dwdate.d_daynuminweek
             for dest_column, source_column_dictionary in fd_colums.items():
                 for source_column, value_dictionary in source_column_dictionary.items():
-                    if spn.table_meta_data['inverted_fd_dict'].get(source_column) is None:
-                        spn.table_meta_data['inverted_fd_dict'][source_column] = dict()
+                    if FACE.table_meta_data['inverted_fd_dict'].get(source_column) is None:
+                        FACE.table_meta_data['inverted_fd_dict'][source_column] = dict()
                     inverted_dictionary = dict()
                     for k, v_list in value_dictionary.items():
                         for v in v_list:
                             inverted_dictionary[v] = k
-                    spn.table_meta_data['inverted_fd_dict'][source_column][dest_column] = inverted_dictionary
+                    FACE.table_meta_data['inverted_fd_dict'][source_column][dest_column] = inverted_dictionary
         else:
-            spn.table_meta_data[table]['fd_dict'] = dict()
+            FACE.table_meta_data[table]['fd_dict'] = dict()
 
 
 def evaluate_factors_group_by(artificially_added_conditions, confidence_intervals, debug,
@@ -376,7 +376,7 @@ def evaluate_factors_group_by(artificially_added_conditions, confidence_interval
                                                             different_specific_result_tuples]
 
                 _, unprojected_exps = \
-                    factor.spn.evaluate_indicator_expectation_batch(factor,
+                    factor.FACE.evaluate_indicator_expectation_batch(factor,
                                                                     specific_technical_group_by_scopes,
                                                                     different_specific_result_tuples_as_list,
                                                                     standard_deviations=False)
@@ -403,7 +403,7 @@ def evaluate_factors_group_by(artificially_added_conditions, confidence_interval
                 if artificially_added_condition in factor.conditions:
                     factor.conditions.remove(artificially_added_condition)
 
-            stds, exps = factor.spn.evaluate_expectation_batch(factor, technical_group_by_scopes, result_tuples,
+            stds, exps = factor.FACE.evaluate_expectation_batch(factor, technical_group_by_scopes, result_tuples,
                                                                standard_deviations=confidence_intervals)
             cardinalities = np.multiply(exps, cardinalities)
             if confidence_intervals:
@@ -502,7 +502,7 @@ def evaluate_factors(dry_run, factors_full, cached_expecation_vals, confidence_i
                 if cached_expecation_vals.get(hash(factor)) is not None:
                     exp = cached_expecation_vals[hash(factor)]
                 else:
-                    _, exp = factor.spn.evaluate_indicator_expectation(factor, gen_code_stats=gen_code_stats,
+                    _, exp = factor.FACE.evaluate_indicator_expectation(factor, gen_code_stats=gen_code_stats,
                                                                        standard_deviations=False)
                     cached_expecation_vals[hash(factor)] = exp
 
@@ -516,7 +516,7 @@ def evaluate_factors(dry_run, factors_full, cached_expecation_vals, confidence_i
                 if not confidence_intervals and cached_expecation_vals.get(hash(factor)) is not None:
                     std, exp = cached_expecation_vals[hash(factor)]
                 else:
-                    std, exp = factor.spn.evaluate_expectation(factor, standard_deviations=confidence_intervals,
+                    std, exp = factor.FACE.evaluate_expectation(factor, standard_deviations=confidence_intervals,
                                                                gen_code_stats=gen_code_stats)
                     if confidence_intervals:
                         ci_index = exps_counter + 2
@@ -587,10 +587,10 @@ class SPNEnsemble:
             self.spns = []
 
     def use_generated_code(self):
-        for spn in self.spns:
-            assert hasattr(spn, 'id'), "Assigned ids are required to employ generated code. Was this step done?"
-            spn.use_generated_code = True
-            # todo. warm start. compute dummy expectation on this spn.
+        for FACE in self.spns:
+            assert hasattr(FACE, 'id'), "Assigned ids are required to employ generated code. Was this step done?"
+            FACE.use_generated_code = True
+            # todo. warm start. compute dummy expectation on this FACE.
 
     def save(self, ensemble_path, compress=False):
         if compress:
@@ -600,17 +600,17 @@ class SPNEnsemble:
             with open(ensemble_path, 'wb') as f:
                 pickle.dump(self, f, pickle.HIGHEST_PROTOCOL)
 
-    def add_spn(self, spn):
-        """Add an SPN to ensemble"""
-        self.spns.append(spn)
+    def add_spn(self, FACE):
+        """Add an FACE to ensemble"""
+        self.spns.append(FACE)
 
     def _cardinality_greedy(self, query, rdc_spn_selection=False, rdc_attribute_dict=None, dry_run=False,
                             merge_indicator_exp=True, exploit_overlapping=False, return_factor_values=False,
                             exploit_incoming_multipliers=True, prefer_disjunct=False, gen_code_stats=None):
         """
-        Find first SPN for cardinality estimate.
+        Find first FACE for cardinality estimate.
         """
-        # Greedily select first SPN
+        # Greedily select first FACE
         first_spn, next_mergeable_relationships, next_mergeable_tables = self._greedily_select_first_cardinality_spn(
             query, rdc_spn_selection=rdc_spn_selection, rdc_attribute_dict=rdc_attribute_dict)
 
@@ -627,7 +627,7 @@ class SPNEnsemble:
 
     def _evaluate_group_by_spn_ensembles(self, query):
         """
-        Go over all Group By attributes, find best SPN with maximal where conditions. Merge features that have same SPN.
+        Go over all Group By attributes, find best FACE with maximal where conditions. Merge features that have same FACE.
         """
 
         spn_group_by_dict = dict()
@@ -635,24 +635,24 @@ class SPNEnsemble:
         for i, grouping_attribute in enumerate(group_by_list):
             max_matching_where_cond = -1
             grouping_spn = None
-            # search for spn with maximal matching where conditions
-            for spn in self.spns:
-                potential_group_by_columns = set(spn.column_names)
-                for table in spn.table_set:
+            # search for FACE with maximal matching where conditions
+            for FACE in self.spns:
+                potential_group_by_columns = set(FACE.column_names)
+                for table in FACE.table_set:
                     potential_group_by_columns = potential_group_by_columns.union(
-                        spn.table_meta_data[table]['fd_dict'].keys())
+                        FACE.table_meta_data[table]['fd_dict'].keys())
 
                 if grouping_attribute not in potential_group_by_columns:
                     continue
-                where_conditions = set(query.table_where_condition_dict.keys()).intersection(spn.table_set)
+                where_conditions = set(query.table_where_condition_dict.keys()).intersection(FACE.table_set)
                 matching_spns = 0
-                if spn in spn_group_by_dict.keys():
+                if FACE in spn_group_by_dict.keys():
                     matching_spns = 1
                 if len(where_conditions) > max_matching_where_cond or \
                         (len(where_conditions) == max_matching_where_cond and matching_spns > 0):
                     max_matching_where_cond = len(where_conditions)
-                    grouping_spn = spn
-            # use this spn in group by dictionary
+                    grouping_spn = FACE
+            # use this FACE in group by dictionary
             if spn_group_by_dict.get(grouping_spn) is None:
                 spn_group_by_dict[grouping_spn] = []
             spn_group_by_dict[grouping_spn].append(grouping_attribute)
@@ -661,7 +661,7 @@ class SPNEnsemble:
         dict_items = list(spn_group_by_dict.items())
         # permutation of group by queries
         attribute_counter = 0
-        for spn, attribute_list in dict_items:
+        for FACE, attribute_list in dict_items:
             for attribute in attribute_list:
                 group_by_permutation[group_by_list.index(attribute)] = attribute_counter
                 attribute_counter += 1
@@ -669,9 +669,9 @@ class SPNEnsemble:
         result_tuples = None
         result_tuples_translated = None
         group_bys_scopes = []
-        for spn, attribute_list in dict_items:
-            conditions = spn.relevant_conditions(query)
-            group_bys_scope, temporary_results, temporary_results_translated = spn.evaluate_group_by_combinations(
+        for FACE, attribute_list in dict_items:
+            conditions = FACE.relevant_conditions(query)
+            group_bys_scope, temporary_results, temporary_results_translated = FACE.evaluate_group_by_combinations(
                 attribute_list,
                 conditions)
             group_bys_scopes += group_bys_scope
@@ -704,17 +704,17 @@ class SPNEnsemble:
     #     max_where_conditions = -1
     #     prediction_spn = None
     #
-    #     for spn in self.spns:
-    #         # if spn contains all features consider it a candidate
-    #         if regression_column in spn.column_names:
+    #     for FACE in self.spns:
+    #         # if FACE contains all features consider it a candidate
+    #         if regression_column in FACE.column_names:
     #
-    #             where_conditions = [condition for condition in conditions if condition[0] in spn.table_set]
+    #             where_conditions = [condition for condition in conditions if condition[0] in FACE.table_set]
     #
     #             if len(where_conditions) > max_where_conditions:
-    #                 prediction_spn = spn
+    #                 prediction_spn = FACE
     #                 max_where_conditions = len(where_conditions)
     #
-    #     assert prediction_spn is not None, "Did not find SPN offering this feature"
+    #     assert prediction_spn is not None, "Did not find FACE offering this feature"
     #
     #     ranges = prediction_spn._parse_conditions(conditions)
     #
@@ -1009,7 +1009,7 @@ class SPNEnsemble:
                                          return_factor_values=False, exploit_incoming_multipliers=True,
                                          prefer_disjunct=False, gen_code_stats=None):
         """
-        Always use SPN that matches most where conditions.
+        Always use FACE that matches most where conditions.
 
         :param query:
         :param first_spn:
@@ -1029,8 +1029,8 @@ class SPNEnsemble:
         original_query = query.copy_cardinality_query()
         query = query.copy_cardinality_query()
 
-        # First SPN: Full_join_size*E(outgoing_mult * 1/multiplier * 1_{c_1 Λ… Λc_n})
-        # Again create auxilary query because intersection of query relationships and spn relationships
+        # First FACE: Full_join_size*E(outgoing_mult * 1/multiplier * 1_{c_1 Λ… Λc_n})
+        # Again create auxilary query because intersection of query relationships and FACE relationships
         # is not necessarily a tree.
         auxilary_query = Query(self.schema_graph)
         for relationship in next_mergeable_relationships:
@@ -1043,14 +1043,14 @@ class SPNEnsemble:
         multipliers = first_spn.compute_multipliers(auxilary_query)  # 
 
         # E(1/multipliers * 1_{c_1 Λ… Λc_n})
-        expectation = IndicatorExpectation(multipliers, conditions, spn=first_spn, table_set=auxilary_query.table_set)
+        expectation = IndicatorExpectation(multipliers, conditions, FACE=first_spn, table_set=auxilary_query.table_set)
         factors.append(expectation)
 
         # mark tables as merged, remove merged relationships
         merged_tables = next_mergeable_tables
         query.relationship_set -= set(next_mergeable_relationships)
 
-        # remember which SPN was used to merge tables
+        # remember which FACE was used to merge tables
         corresponding_exp_dict = {}
         for table in merged_tables:
             corresponding_exp_dict[table] = expectation
@@ -1094,21 +1094,21 @@ class SPNEnsemble:
                     end_table = relationship_obj.end
                     feature = (end_table, relationship_obj.multiplier_attribute_name)
 
-                    # Search SPN with maximal considered conditions
+                    # Search FACE with maximal considered conditions
                     max_considered_where_conditions = -1
                     spn_for_exp_computation = None
 
-                    for spn in self.spns:
+                    for FACE in self.spns:
                         # attribute not even available
-                        if hasattr(spn, 'column_names'):
-                            if end_table + '.' + relationship_obj.multiplier_attribute_name not in spn.column_names:
+                        if hasattr(FACE, 'column_names'):
+                            if end_table + '.' + relationship_obj.multiplier_attribute_name not in FACE.column_names:
                                 continue
-                        conditions = spn.relevant_conditions(original_query)
+                        conditions = FACE.relevant_conditions(original_query)
                         if len(conditions) > max_considered_where_conditions:
                             max_considered_where_conditions = len(conditions)
-                            spn_for_exp_computation = spn
+                            spn_for_exp_computation = FACE
 
-                    assert spn_for_exp_computation is not None, "No SPN found for expectation computation"
+                    assert spn_for_exp_computation is not None, "No FACE found for expectation computation"
 
                     # if spn_for_exp_computation is already used for outgoing multiplier computation it should be used
                     # again. This captures correlations of multipliers better.
@@ -1120,7 +1120,7 @@ class SPNEnsemble:
                         conditions = spn_for_exp_computation.relevant_conditions(original_query)
 
                         expectation = Expectation([feature], normalizing_multipliers, conditions,
-                                                  spn=spn_for_exp_computation)
+                                                  FACE=spn_for_exp_computation)
                         extra_multplier_dict[spn_for_exp_computation] = expectation
                         factors.append(expectation)
 
@@ -1159,7 +1159,7 @@ class SPNEnsemble:
                                                       merged_tables=next_merged_tables.union(overlapping_tables))
             multipliers = next_spn.compute_multipliers(nominator_query)
 
-            nominator_expectation = IndicatorExpectation(multipliers, conditions, spn=next_spn,
+            nominator_expectation = IndicatorExpectation(multipliers, conditions, FACE=next_spn,
                                                          table_set=next_merged_tables.union(overlapping_tables))
 
             # we can still exploit the outgoing multiplier if the multiplier is present
@@ -1183,7 +1183,7 @@ class SPNEnsemble:
             # add not null condition for next neighbor
             conditions.append((next_neighbour, next_neighbour_obj.table_nn_attribute + " IS NOT NULL"))
             multipliers = next_spn.compute_multipliers(denominator_query)
-            denominator_exp = IndicatorExpectation(multipliers, conditions, spn=next_spn, inverse=True,
+            denominator_exp = IndicatorExpectation(multipliers, conditions, FACE=next_spn, inverse=True,
                                                    table_set=overlapping_tables)
 
             # we can still exploit the outgoing multiplier if the multiplier is present
@@ -1217,25 +1217,25 @@ class SPNEnsemble:
         next_mergeable_relationships = None
         current_best_candidate_vector = None
 
-        for spn in self.spns:
+        for FACE in self.spns:
 
-            if len(spn.table_set.intersection(merged_tables)) > 0 and prefer_disjunct:
+            if len(FACE.table_set.intersection(merged_tables)) > 0 and prefer_disjunct:
                 continue
 
-            possible_neighbours = spn.table_set.intersection(next_neighbours)
+            possible_neighbours = FACE.table_set.intersection(next_neighbours)
 
-            # for one SPN we can have several starting points
+            # for one FACE we can have several starting points
             for neighbour in possible_neighbours:
 
                 # plus 1 because we can also merge edge directing to neighbour
-                mergeable_relationships = spn.compute_mergeable_relationships(query, neighbour)
+                mergeable_relationships = FACE.compute_mergeable_relationships(query, neighbour)
                 no_mergeable_relationships = len(mergeable_relationships) + 1
 
                 mergeable_tables = self._merged_tables(mergeable_relationships)
                 mergeable_tables.add(neighbour)
 
                 where_condition_tables = set(query.table_where_condition_dict.keys()).intersection(mergeable_tables)
-                unnecessary_tables = len(spn.table_set) - len(mergeable_tables)
+                unnecessary_tables = len(FACE.table_set) - len(mergeable_tables)
 
                 if not exploit_overlapping:
                     current_candidate_vector = (len(where_condition_tables), no_mergeable_relationships,
@@ -1244,9 +1244,9 @@ class SPNEnsemble:
                 else:
                     # find overlapping relationships (relationships already merged that also appear in next_spn)
                     _, overlapping_tables, no_overlapping_conditions = self._compute_overlap(
-                        next_neighbour, query, original_query, mergeable_relationships, mergeable_tables, spn)
+                        next_neighbour, query, original_query, mergeable_relationships, mergeable_tables, FACE)
 
-                    unnecessary_tables = len(spn.table_set.difference(mergeable_tables).difference(overlapping_tables))
+                    unnecessary_tables = len(FACE.table_set.difference(mergeable_tables).difference(overlapping_tables))
                     current_candidate_vector = (len(where_condition_tables), no_mergeable_relationships,
                                                 no_overlapping_conditions, -unnecessary_tables)
 
@@ -1258,7 +1258,7 @@ class SPNEnsemble:
 
                 if current_best_candidate_vector is None or \
                         current_candidate_vector > current_best_candidate_vector:
-                    next_spn = spn
+                    next_spn = FACE
                     next_neighbour = neighbour
                     next_mergeable_relationships = mergeable_relationships
                     current_best_candidate_vector = current_candidate_vector
@@ -1285,55 +1285,55 @@ class SPNEnsemble:
 
     def _greedily_select_expectation_spn(self, query, features):
         """
-        Select first SPN by maximization of applicable where selections.
+        Select first FACE by maximization of applicable where selections.
         """
 
         max_where_conditions = -1
         first_spn = None
         expectation = None
 
-        for spn in self.spns:
-            # if spn contains all features consider it a candidate
+        for FACE in self.spns:
+            # if FACE contains all features consider it a candidate
             features_col_names = set([table + '.' + feature for table, feature in features])
-            if len(features_col_names.difference(spn.column_names)) == 0:
+            if len(features_col_names.difference(FACE.column_names)) == 0:
 
-                where_conditions = set(query.table_where_condition_dict.keys()).intersection(spn.table_set)
+                where_conditions = set(query.table_where_condition_dict.keys()).intersection(FACE.table_set)
 
                 if len(where_conditions) > max_where_conditions:
-                    first_spn = spn
-                    conditions = spn.relevant_conditions(query)
-                    normalizing_multipliers = spn.compute_multipliers(query)
-                    expectation = Expectation(features, normalizing_multipliers, conditions, spn=first_spn)
+                    first_spn = FACE
+                    conditions = FACE.relevant_conditions(query)
+                    normalizing_multipliers = FACE.compute_multipliers(query)
+                    expectation = Expectation(features, normalizing_multipliers, conditions, FACE=first_spn)
 
-        assert first_spn is not None, "Did not find SPN offering all features"
+        assert first_spn is not None, "Did not find FACE offering all features"
 
         return first_spn, expectation
 
     def _greedily_select_first_cardinality_spn(self, query, rdc_spn_selection=False, rdc_attribute_dict=None):
         """
-        Select first SPN by maximization of applicable where selections.
+        Select first FACE by maximization of applicable where selections.
         """
         first_spn = None
         next_mergeable_relationships = None
         next_mergeable_tables = None
         current_best_candidate_vector = None
 
-        for spn in self.spns:
+        for FACE in self.spns:
             # to get mergeable relationships we could use
-            # intersection_relationships = query.relationship_set.intersection(spn.relationship_set)
+            # intersection_relationships = query.relationship_set.intersection(FACE.relationship_set)
             # However, this does not work if mergeable relationships are not connected
-            for start_table in spn.table_set:
+            for start_table in FACE.table_set:
                 if start_table not in query.table_set:
                     continue
 
-                mergeable_relationships = spn.compute_mergeable_relationships(query, start_table)
+                mergeable_relationships = FACE.compute_mergeable_relationships(query, start_table)
                 no_mergeable_relationships = len(mergeable_relationships) + 1
 
                 mergeable_tables = self._merged_tables(mergeable_relationships)
                 mergeable_tables.add(start_table)
 
                 where_conditions = set(query.table_where_condition_dict.keys()).intersection(mergeable_tables)
-                unnecessary_tables = len(spn.table_set.difference(query.table_set))
+                unnecessary_tables = len(FACE.table_set.difference(query.table_set))
 
                 current_candidate_vector = (len(where_conditions), no_mergeable_relationships, -unnecessary_tables)
 
@@ -1343,7 +1343,7 @@ class SPNEnsemble:
 
                 if current_best_candidate_vector is None or current_candidate_vector > current_best_candidate_vector:
                     current_best_candidate_vector = current_candidate_vector
-                    first_spn = spn
+                    first_spn = FACE
                     next_mergeable_relationships = mergeable_relationships
                     next_mergeable_tables = mergeable_tables
 
@@ -1356,14 +1356,14 @@ class SPNEnsemble:
 
         possible_starts = []
 
-        for spn in self.spns:
+        for FACE in self.spns:
             considered_start_tables = set()
-            for start_table in spn.table_set.intersection(query.table_set):
+            for start_table in FACE.table_set.intersection(query.table_set):
 
-                # e.g. customer and order part of same spn
+                # e.g. customer and order part of same FACE
                 if start_table in considered_start_tables:
                     continue
-                mergeable_relationships = spn.compute_mergeable_relationships(query, start_table)
+                mergeable_relationships = FACE.compute_mergeable_relationships(query, start_table)
                 mergeable_tables = self._merged_tables(mergeable_relationships)
                 mergeable_tables.add(start_table)
                 no_where_conditions = len(set(query.table_where_condition_dict.keys()).intersection(mergeable_tables))
@@ -1375,7 +1375,7 @@ class SPNEnsemble:
                     mergeable_tables.add(start_table)
                 considered_start_tables.update(mergeable_tables)
 
-                possible_starts.append((spn, mergeable_relationships, mergeable_tables))
+                possible_starts.append((FACE, mergeable_relationships, mergeable_tables))
 
         return possible_starts
 

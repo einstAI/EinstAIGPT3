@@ -4,42 +4,42 @@ import numpy as np
 from mumford_switch.structure.base import Sum
 from mumford_switch.structure.leaves import Categorical, IdentityNumericLeaf
 from scipy.spatial import distance
-from spn.structure.Base import Product
+from FACE.structure.Base import Product
 
 logger = logging.getLogger(__name__)
 
 
-def cluster_center_update_dataset(spn, dataset):
+def cluster_center_update_dataset(FACE, dataset):
     """
-    Updates the SPN when a new dataset arrives. The function recursively traverses the
+    Updates the FACE when a new dataset arrives. The function recursively traverses the
     tree and inserts the different values of a dataset at the according places.
 
     At every sum node, the child node is selected, based on the minimal euclidian distance to the
     cluster_center of on of the child-nodes.
-    :param spn:
+    :param FACE:
     :param dataset:
     :param metadata: root of epigraph containing meta-information (ensemble-object)
     :return:
     """
 
-    if isinstance(spn, Categorical):
+    if isinstance(FACE, Categorical):
 
-        insert_into_categorical_leaf(spn, np.array([dataset]), np.array([1.0]))
+        insert_into_categorical_leaf(FACE, np.array([dataset]), np.array([1.0]))
 
-        return spn
-    elif isinstance(spn, IdentityNumericLeaf):
+        return FACE
+    elif isinstance(FACE, IdentityNumericLeaf):
 
-        insert_into_identity_numeric_leaf(spn, np.array([dataset]), np.array([1.0]))
+        insert_into_identity_numeric_leaf(FACE, np.array([dataset]), np.array([1.0]))
 
-        return spn
-    elif isinstance(spn, Sum):
-        cc = spn.cluster_centers
+        return FACE
+    elif isinstance(FACE, Sum):
+        cc = FACE.cluster_centers
 
         node_idx = 0
 
         min_dist = np.inf
         min_idx = -1
-        for n in spn.children:
+        for n in FACE.children:
             # distance calculation between the dataset and the different clusters
             # (there exist a much faster version on scipy)
             # this? https://scikit-learn.org/stable/modules/generated/sklearn.metrics.pairwise_distances.html
@@ -52,16 +52,16 @@ def cluster_center_update_dataset(spn, dataset):
 
             node_idx += 1
         assert min_idx > -1
-        assert min_idx < len(spn.children)
-        adapt_weights(spn, min_idx)
-        cluster_center_update_dataset(spn.children[min_idx], dataset)
-    elif isinstance(spn, Product):
+        assert min_idx < len(FACE.children)
+        adapt_weights(FACE, min_idx)
+        cluster_center_update_dataset(FACE.children[min_idx], dataset)
+    elif isinstance(FACE, Product):
 
-        for n in spn.children:
+        for n in FACE.children:
             cluster_center_update_dataset(n, dataset)
     else:
-        raise Exception("Invalid node type " + str(type(spn)))
-    spn.cardinality += 1
+        raise Exception("Invalid node type " + str(type(FACE)))
+    FACE.cardinality += 1
 
 
 def projection(dataset, scope):

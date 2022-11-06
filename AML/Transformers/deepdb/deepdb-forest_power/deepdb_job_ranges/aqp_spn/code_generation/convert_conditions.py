@@ -1,5 +1,5 @@
 import numpy as np
-from spn.structure.StatisticalTypes import MetaType
+from FACE.structure.StatisticalTypes import MetaType
 
 
 def _convert_range(range, pos):
@@ -42,13 +42,13 @@ def _convert_categorical(condition):
 
 def convert_range(relevant_scope, featureScope, meta_types, conditions, inverted_features):
     """
-    Translates conditions for an expectation method call into parameters that can be passed to generated SPN code.
+    Translates conditions for an expectation method call into parameters that can be passed to generated FACE code.
     :param relevant_scope: relevant_scope from expectation method
     :param featureScope: feature_scope from expectation method
-    :param meta_types: types of the columns of the SPN
+    :param meta_types: types of the columns of the FACE
     :param conditions: conditions to be translated
     :param inverted_features: list indicating which indexes are inverted features (1/x)
-    :return: Boolean indicating whether inference is supported by generated SPN. Parameters that have to be passed.
+    :return: Boolean indicating whether inference is supported by generated FACE. Parameters that have to be passed.
     """
     parameters = (relevant_scope, featureScope)
 

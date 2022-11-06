@@ -1,11 +1,11 @@
 from aqp_spn.aqp_leaves import Sum
 from aqp_spn.custom_spflow.custom_validity import is_valid
-from spn.structure.Base import get_nodes_by_type, Product, Leaf, assign_ids
+from FACE.structure.Base import get_nodes_by_type, Product, Leaf, assign_ids
 
 
 def Prune(node, light=False):
     """
-    Prunes spn. Ensures that nodes have at least one child and that types of node and children differ.
+    Prunes FACE. Ensures that nodes have at least one child and that types of node and children differ.
     Adapts weigths and optionally bloom filters accordingly.
     :param node:
     :return:

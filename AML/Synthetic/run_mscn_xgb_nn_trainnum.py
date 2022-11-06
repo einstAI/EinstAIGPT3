@@ -1,110 +1,86 @@
 import argparse
 import os
+import sys
+import time
+from argparse import ArgumentParser
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+from anyio.streams import file
+from matplotlib import rcParams
+from tqdm import tqdm
+
+from physical_db import DBConnection, TrueCardinalityEstimator
+
+def main():
+    for i in range(100):
+        print(i)
+
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--db_name",
+        type=str,
+        default="tpch",
+        help="Database name",
+    )
+
+    parser.add_argument(
+        "--db_path",
+        type=str,
+        default="data/tpch",
+        help="Path to the database",
+    )
+    parser.add_argument(
+        "--query_file",
+        type=str,
+        default="data/tpch/tpch_queries.txt",
+        help="Path to the query file",
+    )
+
+    parser.add_argument(
+        "--output_file",
+        type=str,
+        default="data/tpch/tpch_true_card.txt",
+        help="Path to the output file",
+    )
+
+    parser.add_argument(
+        "--num_workers",
+        type=int,
+        default=1,
+        help="Number of workers",
+    )
+
+
+
+
+
+    args = parser.parse_args()
+
+
+    db = DBConnection(args.db_name, args.db_path)
+
+
+    true_card = TrueCardinalityEstimator(db, args.num_workers)
+
+
+    with open(args.query_file, "r") as f:
+        queries = f.readlines()
+
+
+    with open(args.output_file, "w") as f:
+
+        for query in tqdm(queries):
+            true_cardinality = true_card.estimate(query)
+            f.write(str(true_cardinality) + " " + query)
+
+
 
 parser = argparse.ArgumentParser(description='mscn_xgb_nn')
-
-parser.add_argument('--version', type=str, help='datasets_dir', default='cols_4_distinct_1000_corr_5_skew_5')
-args = parser.parse_args()
-version = args.version
-'''
-# sql1
-pretrain = 'python preprocessing.py --datasets-dir /home/zhangjintao/Benchmark3/sql-modelsize/sql/1/ --raw-query-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/1/' + version + \
-    'train.sql' + ' --min-max-file /home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/data/' + version + '_min_max_vals.csv ' + '--table ' + version + ' --alias cdcs'
-pretest = 'python preprocessing.py --datasets-dir /home/zhangjintao/Benchmark3/sql-modelsize/sql/1/ --raw-query-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/1/' + version + \
-    'test.sql' + ' --min-max-file /home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/data/' + version + '_min_max_vals.csv ' + '--table ' + version + ' --alias cdcs'
-train = 'python train.py --min-max-file /home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/data/' + version + \
-    '_min_max_vals.csv --queries 2500 --epochs 100 --batch 1024 --hid 256 --train-query-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/1/' + version + \
-    'train.sql --test-query-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/1/' + version + 'test.sql --train --version ' + version
-test = 'python train.py --min-max-file /home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/data/' + version + \
-    '_min_max_vals.csv --queries 2500 --epochs 100 --batch 1024 --hid 256 --train-query-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/1/' + version + \
-    'train.sql --test-query-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/1/' + version + 'test.sql --version ' + version
-
-
-os.chdir('/home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/mscn')
-os.system(pretrain)
-os.system(pretest)
-os.chdir('/home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR')
-os.system(train)
-os.system(test)
-
-# sql2
-pretrain = 'python preprocessing.py --datasets-dir /home/zhangjintao/Benchmark3/sql-modelsize/sql/2/ --raw-query-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/2/' + version + \
-    'train.sql' + ' --min-max-file /home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/data/' + version + '_min_max_vals.csv ' + '--table ' + version + ' --alias cdcs'
-pretest = 'python preprocessing.py --datasets-dir /home/zhangjintao/Benchmark3/sql-modelsize/sql/2/ --raw-query-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/2/' + version + \
-    'test.sql' + ' --min-max-file /home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/data/' + version + '_min_max_vals.csv ' + '--table ' + version + ' --alias cdcs'
-train = 'python train.py --min-max-file /home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/data/' + version + \
-    '_min_max_vals.csv --queries 5000 --epochs 100 --batch 1024 --hid 256 --train-query-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/2/' + version + \
-    'train.sql --test-query-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/2/' + version + 'test.sql --train --version ' + version
-test = 'python train.py --min-max-file /home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/data/' + version + \
-    '_min_max_vals.csv --queries 5000 --epochs 100 --batch 1024 --hid 256 --train-query-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/2/' + version + \
-    'train.sql --test-query-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/2/' + version + 'test.sql --version ' + version
-
-
-os.chdir('/home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/mscn')
-os.system(pretrain)
-os.system(pretest)
-os.chdir('/home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR')
-os.system(train)
-os.system(test)
-'''
-# sql3
-pretrain = 'python preprocessing.py --datasets-dir /home/zhangjintao/Benchmark3/sql-modelsize/sql/3/ --raw-query-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/3/' + version + \
-           'train.sql' + ' --min-max-file /home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/data/' + version + '_min_max_vals.csv ' + '--table ' + version + ' --alias cdcs'
-pretest = 'python preprocessing.py --datasets-dir /home/zhangjintao/Benchmark3/sql-modelsize/sql/3/ --raw-query-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/3/' + version + \
-          'test.sql' + ' --min-max-file /home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/data/' + version + '_min_max_vals.csv ' + '--table ' + version + ' --alias cdcs'
-train = 'python train.py --min-max-file /home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/data/' + version + \
-        '_min_max_vals.csv --queries 7500 --epochs 100 --batch 1024 --hid 256 --train-query-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/3/' + version + \
-        'train.sql --test-query-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/3/' + version + 'test.sql --train --version ' + version
-test = 'python train.py --min-max-file /home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/data/' + version + \
-       '_min_max_vals.csv --queries 7500 --epochs 100 --batch 1024 --hid 256 --train-query-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/3/' + version + \
-       'train.sql --test-query-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/3/' + version + 'test.sql --version ' + version
-
-os.chdir('/home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/mscn')
-os.system(pretrain)
-os.system(pretest)
-os.chdir('/home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR')
-os.system(train)
-os.system(test)
-
-# parser.add_argument('--model', type=str, help='nn||xgb', default='nn')
-
-# model = args.model
-
-'''
-# sql1
-run = 'python run.py --train-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/1/' + version + 'train.sql' + ' --test-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/1/' + version + 'test.sql' + \
-    ' --min-max-file /home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/data/' + version + '_min_max_vals.csv ' + '--model ' + 'nn' + ' --version ' + version
-
-os.chdir('/home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/xgboost')
-os.system(run)
-
-run = 'python run.py --train-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/1/' + version + 'train.sql' + ' --test-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/1/' + version + 'test.sql' + \
-    ' --min-max-file /home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/data/' + version + '_min_max_vals.csv ' + '--model ' + 'xgb' + ' --version ' + version
-
-os.chdir('/home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/xgboost')
-os.system(run)
-# sql2
-run = 'python run.py --train-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/2/' + version + 'train.sql' + ' --test-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/2/' + version + 'test.sql' + \
-    ' --min-max-file /home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/data/' + version + '_min_max_vals.csv ' + '--model ' + 'nn' + ' --version ' + version
-
-os.chdir('/home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/xgboost')
-os.system(run)
-
-run = 'python run.py --train-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/2/' + version + 'train.sql' + ' --test-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/2/' + version + 'test.sql' + \
-    ' --min-max-file /home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/data/' + version + '_min_max_vals.csv ' + '--model ' + 'xgb' + ' --version ' + version
-
-os.chdir('/home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/xgboost')
-os.system(run)
-'''
-# sql3
-run = 'python run.py --train-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/3/' + version + 'train.sql' + ' --test-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/3/' + version + 'test.sql' + \
-      ' --min-max-file /home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/data/' + version + '_min_max_vals.csv ' + '--model ' + 'nn' + ' --version ' + version
-
-os.chdir('/home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/xgboost')
-os.system(run)
-
-run = 'python run.py --train-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/3/' + version + 'train.sql' + ' --test-file /home/zhangjintao/Benchmark3/sql-modelsize/sql/3/' + version + 'test.sql' + \
-      ' --min-max-file /home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/MUMFORDGRAMMAR/data/' + version + '_min_max_vals.csv ' + '--model ' + 'xgb' + ' --version ' + version
-
-os.chdir('/home/zhangjintao/Benchmark3/CardinalityEstimationBenchmark/xgboost')
-os.system(run)
+parser.add_argument('--train_num', type=int, default=1000000, help='train_num')
+parser.add_argument('--test_num', type=int, default=1000000, help='test_num')
+parser.add_argument('--batch_size', type=int, default=100000, help='batch_size')
+parser.add_argument('--epoch', type=int, default=100, help='epoch')
+parser.add_argument('--lr', type=float, default=0.001, help='lr')

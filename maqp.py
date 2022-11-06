@@ -10,10 +10,10 @@ from AML.Synthetic.EINSTEINAI4DB.data_preparation.prepare_single_tables import p
 from AML.Synthetic.EINSTEINAI4DB.deep_rl.spn_ensemble import read_ensemble
 from AML.Synthetic.EINSTEINAI4DB.ensemble_creation.naive import create_naive_all_split_ensemble, naive_every_relationship_ensemble
 from AML.Synthetic.EINSTEINAI4DB.ensemble_creation.rdc_based import candidate_evaluation
-from AML.Synthetic.EINSTEINAI4DB.evaluation.confidence_interval_evaluation import evaluate_confidence_intervals
-from AML.Synthetic.EINSTEINAI4DB.mumfordswitch.code_generation.generate_code import generate_ensemble_code
-from AML.Synthetic.EINSTEINAI4DB.schemas.flights.schema import gen_flights_1B_schema
-from AML.Synthetic.EINSTEINAI4DB.schemas.imdb import gen_job_light_imdb_schema, gen_job_ranges_imdb_schema
+from AML.Synthetic.EINSTEINAI4DB.ensemble_creation.confidence_interval_evaluation import evaluate_confidence_intervals
+from mumfordswitch.code_generation.generate_code import generate_ensemble_code
+from AML.benchmarks import gen_flights_1B_schema
+from AML.benchmarks.imdb import gen_job_light_imdb_schema, gen_job_ranges_imdb_schema
 from AML.Synthetic.EINSTEINAI4DB.schemas.ssb.schema import gen_500gb_ssb_schema
 from AML.Synthetic.EINSTEINAI4DB.schemas.tpc_ds.schema import gen_1t_tpc_ds_schema
 
@@ -62,16 +62,16 @@ if __name__ == '__main__':
                         action='store_true')
 
     # evaluation
-    parser.add_argument('--evaluate_cardinalities', help='Evaluates SPN ensemble to compute cardinalities',
+    parser.add_argument('--evaluate_cardinalities', help='Evaluates FACE ensemble to compute cardinalities',
                         action='store_true')
-    parser.add_argument('--rdc_spn_selection', help='Uses pairwise rdc values to for the SPN compilation',
+    parser.add_argument('--rdc_spn_selection', help='Uses pairwise rdc values to for the FACE compilation',
                         action='store_true')
-    parser.add_argument('--evaluate_cardinalities_scale', help='Evaluates SPN ensemble to compute cardinalities',
+    parser.add_argument('--evaluate_cardinalities_scale', help='Evaluates FACE ensemble to compute cardinalities',
                         action='store_true')
-    parser.add_argument('--evaluate_aqp_queries', help='Evaluates SPN ensemble for AQP', action='store_true')
+    parser.add_argument('--evaluate_aqp_queries', help='Evaluates FACE ensemble for AQP', action='store_true')
     parser.add_argument('--against_ground_truth', help='Computes ground truth for AQP', action='store_true')
     parser.add_argument('--evaluate_confidence_intervals',
-                        help='Evaluates SPN ensemble and compares stds with true stds', action='store_true')
+                        help='Evaluates FACE ensemble and compares stds with true stds', action='store_true')
     parser.add_argument('--confidence_upsampling_factor', type=int, default=300)
     parser.add_argument('--confidence_sample_size', type=int, default=10000000)
     parser.add_argument('--ensemble_location', nargs='+',
@@ -85,13 +85,13 @@ if __name__ == '__main__':
     parser.add_argument('--target_path', default='../ssb-benchmark/results')  # External write
     parser.add_argument('--raw_folder', default='../ssb-benchmark/results')  # External write
     parser.add_argument('--confidence_intervals', help='Compute confidence intervals', action='store_true')
-    parser.add_argument('--max_variants', help='How many spn compilations should be computed for the cardinality '
+    parser.add_argument('--max_variants', help='How many FACE compilations should be computed for the cardinality '
                                                'estimation. Seeting this parameter to 1 means greedy strategy.',
                         type=int, default=1)  # External write
     parser.add_argument('--no_exploit_overlapping', action='store_true')
     parser.add_argument('--no_merge_indicator_exp', action='store_true')
 
-    # evaluation of spn ensembles in folder
+    # evaluation of FACE ensembles in folder
     parser.add_argument('--hdf_build_path', default='')
 
     # log level
@@ -196,7 +196,7 @@ if __name__ == '__main__':
 
     # Read pre-trained ensemble and evaluate cardinality queries scale
     if args.evaluate_cardinalities_scale:
-        from AML.Synthetic.EINSTEINAI4DB.evaluation.cardinality_evaluation import evaluate_cardinalities
+        from AML.Synthetic.evaluation import evaluate_cardinalities
 
         for i in [3, 4, 5, 6]:
             for j in [1, 2, 3, 4, 5]:
@@ -212,7 +212,7 @@ if __name__ == '__main__':
 
     # Read pre-trained ensemble and evaluate cardinality queries
     if args.evaluate_cardinalities:
-        from AML.Synthetic.EINSTEINAI4DB.evaluation.cardinality_evaluation import evaluate_cardinalities
+        from AML.Synthetic.evaluation import evaluate_cardinalities
 
         logging.info(
             f"maqp(evaluate_cardinalities: database_name={args.database_name}, target_path={args.target_path})")
@@ -227,19 +227,19 @@ if __name__ == '__main__':
 
     # Compute ground truth for AQP queries
     if args.aqp_ground_truth:
-        from AML.Synthetic.EINSTEINAI4DB.evaluation.aqp_evaluation import compute_ground_truth
+        from AML.Synthetic.EINSTEINAI4DB.ensemble_creation.aqp_evaluation import compute_ground_truth
 
         compute_ground_truth(args.target_path, args.database_name, query_filename=args.query_file_location)
 
     # Compute ground truth for Cardinality queries
     if args.cardinalities_ground_truth:
-        from AML.Synthetic.EINSTEINAI4DB.evaluation.cardinality_evaluation import compute_ground_truth
+        from AML.Synthetic.evaluation import compute_ground_truth
 
         compute_ground_truth(args.query_file_location, args.target_path, args.database_name)
 
     # Read pre-trained ensemble and evaluate AQP queries
     if args.evaluate_aqp_queries:
-        from AML.Synthetic.EINSTEINAI4DB.evaluation.aqp_evaluation import evaluate_aqp_queries
+        from AML.Synthetic.EINSTEINAI4DB.ensemble_creation.aqp_evaluation import evaluate_aqp_queries
 
         evaluate_aqp_queries(args.ensemble_location, args.query_file_location, args.target_path, schema,
                              args.ground_truth_file_location, args.rdc_spn_selection, args.pairwise_rdc_path,

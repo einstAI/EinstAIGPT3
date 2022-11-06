@@ -4,13 +4,13 @@ from time import perf_counter
 import numpy as np
 from aqp_spn.aqp_leaves import Sum
 from aqp_spn.code_generation.convert_conditions import convert_range
-from spn.algorithms.Inference import likelihood
-from spn.structure.Base import Product
+from FACE.algorithms.Inference import likelihood
+from FACE.structure.Base import Product
 
 logger = logging.getLogger(__name__)
 
 
-def expectation(spn, feature_scope, inverted_features, ranges, node_expectation=None, node_likelihoods=None,
+def expectation(FACE, feature_scope, inverted_features, ranges, node_expectation=None, node_likelihoods=None,
                 use_generated_code=False, spn_id=None, meta_types=None, gen_code_stats=None):
     """Compute the Expectation:
         E[1_{conditions} * X_feature_scope]
@@ -45,7 +45,7 @@ def expectation(spn, feature_scope, inverted_features, ranges, node_expectation=
             time_start = perf_counter()
             import optimized_inference
 
-            spn_func = getattr(optimized_inference, f'spn{spn_id}')
+            spn_func = getattr(optimized_inference, f'FACE{spn_id}')
             result = np.array([[spn_func(*parameters)]])
 
             time_end = perf_counter()
@@ -60,10 +60,10 @@ def expectation(spn, feature_scope, inverted_features, ranges, node_expectation=
         # lightweight non-batch version
         else:
             return np.array(
-                [[expectation_recursive(spn, feature_scope, inverted_features, relevant_scope, evidence,
+                [[expectation_recursive(FACE, feature_scope, inverted_features, relevant_scope, evidence,
                                         node_expectation, node_likelihoods)]])
     # full batch version
-    return expectation_recursive_batch(spn, feature_scope, inverted_features, relevant_scope, evidence,
+    return expectation_recursive_batch(FACE, feature_scope, inverted_features, relevant_scope, evidence,
                                        node_expectation, node_likelihoods)
 
 

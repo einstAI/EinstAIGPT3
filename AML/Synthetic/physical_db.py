@@ -1,7 +1,58 @@
 import pandas as pd
-import psycopg2
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from anyio.streams import file
+from matplotlib import rcParams
+import sys
+
+from sqlalchemy.dialects.postgresql import psycopg2
 
 
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--db_name",
+        type=str,
+        default="tpch",
+        help="Database name",
+    )
+    parser.add_argument(
+        "--db_path",
+        type=str,
+        default="data/tpch",
+        help="Path to the database",
+    )
+    parser.add_argument(
+        "--query_file",
+        type=str,
+        default="data/tpch/tpch_queries.txt",
+        help="Path to the query file",
+    )
+    parser.add_argument(
+        "--output_file",
+        type=str,
+        default="data/tpch/tpch_true_card.txt",
+        help="Path to the output file",
+    )
+    parser.add_argument(
+        "--num_workers",
+        type=int,
+        default=1,
+        help="Number of workers",
+    )
+    args = parser.parse_args()
+
+    db = DBConnection(args.db_name, args.db_path)
+    true_card = TrueCardinalityEstimator(db, args.num_workers)
+
+    with open(args.query_file, "r") as f:
+        queries = f.readlines()
+
+    with open(args.output_file, "w") as f:
+        for query in tqdm(queries):
+            true_cardinality = true_card.estimate(query)
+            f.write(f"{query.strip()}\t{true_cardinality}\n")
 class DBConnection:
     def __init__(self, db_user="jintao", db_password="jintao", db_host="166.111.121.55", db_port="5432",
                  db="benchmark"):

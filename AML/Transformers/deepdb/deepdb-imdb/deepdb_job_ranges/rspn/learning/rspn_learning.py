@@ -3,9 +3,9 @@ import logging
 import numpy as np
 from mumford_switch.structure.leaves import IdentityNumericLeaf, Categorical
 from sklearn.cluster import KMeans
-from spn.algorithms.splitting.Base import preproc, split_data_by_clusters
-from spn.algorithms.splitting.RDC import getIndependentRDCGroups_py
-from spn.structure.StatisticalTypes import MetaType
+from FACE.algorithms.splitting.Base import preproc, split_data_by_clusters
+from FACE.algorithms.splitting.RDC import getIndependentRDCGroups_py
+from FACE.structure.StatisticalTypes import MetaType
 
 logger = logging.getLogger(__name__)
 MAX_UNIQUE_LEAF_VALUES = 10000
@@ -63,13 +63,13 @@ def learn_mspn(
     if memory:
         l_mspn = memory.cache(l_mspn)
 
-    spn = l_mspn(data, ds_context, cols, rows, min_instances_slice, threshold, ohe)
-    return spn
+    FACE = l_mspn(data, ds_context, cols, rows, min_instances_slice, threshold, ohe)
+    return FACE
 
 
 def create_custom_leaf(data, ds_context, scope):
     """
-    Adapted leafs for cardinality SPN. Either categorical or identityNumeric leafs.
+    Adapted leafs for cardinality FACE. Either categorical or identityNumeric leafs.
     """
 
     idx = scope[0]
@@ -117,9 +117,9 @@ def create_custom_leaf(data, ds_context, scope):
 
 def get_splitting_functions(max_sampling_threshold_rows, max_sampling_threshold_cols, cols, rows, ohe, threshold,
                             rand_gen, n_jobs):
-    from spn.algorithms.splitting.Clustering import get_split_rows_TSNE, get_split_rows_GMM
-    from spn.algorithms.splitting.PoissonStabilityTest import get_split_cols_poisson_py
-    from spn.algorithms.splitting.RDC import get_split_rows_RDC_py
+    from FACE.algorithms.splitting.Clustering import get_split_rows_TSNE, get_split_rows_GMM
+    from FACE.algorithms.splitting.PoissonStabilityTest import get_split_cols_poisson_py
+    from FACE.algorithms.splitting.RDC import get_split_rows_RDC_py
 
     if isinstance(cols, str):
 
@@ -178,7 +178,7 @@ def get_split_rows_KMeans(max_sampling_threshold_rows, n_clusters=2, pre_proc=No
 def get_split_cols_RDC_py(max_sampling_threshold_cols=10000, threshold=0.3, ohe=True, k=10, s=1 / 6,
                           non_linearity=np.sin,
                           n_jobs=-2, rand_gen=None):
-    from spn.algorithms.splitting.RDC import split_data_by_clusters
+    from FACE.algorithms.splitting.RDC import split_data_by_clusters
 
     def split_cols_RDC_py(local_data, ds_context, scope):
         meta_types = ds_context.get_meta_types_by_scope(scope)

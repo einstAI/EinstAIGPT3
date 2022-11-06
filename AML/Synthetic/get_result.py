@@ -49,7 +49,7 @@ if method == 'naru':
 
 # bayesian
 if method == 'bayesian':
-    os.chdir('./bayesian')
+    os.chdir('../../bayesian')
     os.system('python3 eval_model.py --dataset=' + version + ' --num-queries=60 --run-bn')
     os.chdir('..')
 

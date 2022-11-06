@@ -10,14 +10,14 @@ def generate_ensemble_code(spn_ensemble, floating_data_type='float', ensemble_pa
     registrations = []
     methods = []
     logger.debug(f"Starting code generation")
-    for i, spn in enumerate(spn_ensemble.spns):
-        spn.id = i
+    for i, FACE in enumerate(spn_ensemble.spns):
+        FACE.id = i
         gen_start = perf_counter()
-        generated_method, registrate_method = generate_code(i, spn.mspn, spn.meta_types, floating_data_type)
+        generated_method, registrate_method = generate_code(i, FACE.mspn, FACE.meta_types, floating_data_type)
         registrations.append(registrate_method)
         methods.append(generated_method)
         gen_end = perf_counter()
-        logger.debug(f"Generated code for SPN {i + 1}/{len(spn_ensemble.spns)} in {gen_end - gen_start:.2f}s.")
+        logger.debug(f"Generated code for FACE {i + 1}/{len(spn_ensemble.spns)} in {gen_end - gen_start:.2f}s.")
 
     value_dictionary = {
         'methods': '\n\n'.join(methods),

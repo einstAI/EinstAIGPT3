@@ -10,7 +10,7 @@ from mumford_switch.mumford_switch import mumford_switch
 from mumford_switch.structure.leaves import IdentityNumericLeaf, identity_distinct_ranges, categorical_distinct_ranges, \
     Categorical, identity_likelihood_range, categorical_likelihood_range
 from mumford_switch.updates.top_down_updates import cluster_center_update_dataset
-from spn.structure.StatisticalTypes import MetaType
+from FACE.structure.StatisticalTypes import MetaType
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ class AQPSPN(CombineSPN, mumford_switch):
 
         logging.debug(f"add dataset (incremental)")
         assert len(self.mspn.scope) == len(
-            dataset), "dataset has a differnt number of columns as spn. spn expects " + str(
+            dataset), "dataset has a differnt number of columns as FACE. FACE expects " + str(
             str(len(self.mspn.scope))) + " columns, but dataset has " + str(len(dataset)) + " columns"
 
         cluster_center_update_dataset(self.mspn, dataset)
@@ -87,7 +87,7 @@ class AQPSPN(CombineSPN, mumford_switch):
         :return:
         """
 
-        logging.info(f"Incremental adding {len(data)} datasets to SPN ...")
+        logging.info(f"Incremental adding {len(data)} datasets to FACE ...")
         add_ds_start_t = perf_counter()
         i = 0
         for ds in data:
@@ -104,7 +104,7 @@ class AQPSPN(CombineSPN, mumford_switch):
 
     def evaluate_expectation(self, expectation, standard_deviations=False, gen_code_stats=None):
         """
-        Evaluates expectation. Does transformations to map to SPN query compilation.
+        Evaluates expectation. Does transformations to map to FACE query compilation.
         :param expectation:
         :return:
         """
@@ -366,7 +366,7 @@ class AQPSPN(CombineSPN, mumford_switch):
 
     def _parse_conditions(self, conditions, group_by_columns=None, group_by_tuples=None):
         """
-        Translates string conditions to NumericRange and NominalRanges the SPN understands.
+        Translates string conditions to NumericRange and NominalRanges the FACE understands.
         """
         # self.column_names.append('title.season_n') # modify
         assert self.column_names is not None, "For probability evaluation column names have to be provided."

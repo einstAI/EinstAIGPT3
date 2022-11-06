@@ -14,7 +14,7 @@ import made
 import numpy as np
 import pandas as pd
 import torch
-import transformer
+from AML.Synthetic.EINSTEINAI4DB import transformer
 
 OPS = {
     '>': np.greater,

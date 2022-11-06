@@ -12,8 +12,8 @@ from ensemble_compilation.physical_db import DBConnection
 from ensemble_compilation.spn_ensemble import SPNEnsemble
 from ensemble_creation.naive import RATIO_MIN_INSTANCE_SLICE
 from ensemble_creation.utils import create_random_join
-from spn.algorithms.splitting.RDC import rdc_cca, rdc_transformer
-from spn.structure.Base import Context
+from FACE.algorithms.splitting.RDC import rdc_cca, rdc_transformer
+from FACE.structure.Base import Context
 
 logger = logging.getLogger(__name__)
 
@@ -153,7 +153,7 @@ def candidate_evaluation(schema, meta_data_path, sample_size, spn_sample_size, m
     # evaluate the budgets
     eval_start_t = perf_counter()
 
-    # maximum budget relative to costs of creating SPN for all single tables
+    # maximum budget relative to costs of creating FACE for all single tables
     budget = ensemble_budget_factor * sum(
         [prep.column_number(single_table=table.table_name) ** 2 for table in schema.tables])
 
@@ -183,7 +183,7 @@ def candidate_evaluation(schema, meta_data_path, sample_size, spn_sample_size, m
         db_connection = DBConnection(db=physical_db_name)
 
     for relationship_list, merged_tables in optimal_candidate:
-        logger.info(f"Learning SPN for {str(relationship_list)}.")
+        logger.info(f"Learning FACE for {str(relationship_list)}.")
 
         # compute join sample
         join_start_t = perf_counter()
@@ -242,7 +242,7 @@ def candidate_evaluation(schema, meta_data_path, sample_size, spn_sample_size, m
         else:
             cardinality_true = full_join_est
 
-        # learn spn
+        # learn FACE
         if len(relationship_list) > 0:
             aqp_spn = AQPSPN(meta_types, null_values, cardinality_true, schema,
                              list(relationship_list), full_sample_size=len(df_samples),
@@ -255,7 +255,7 @@ def candidate_evaluation(schema, meta_data_path, sample_size, spn_sample_size, m
         min_instance_slice = RATIO_MIN_INSTANCE_SLICE * min(spn_sample_size[len(merged_tables) - 1], len(df_samples))
         logger.debug(f"Using {len(df_samples)} samples.")
         logger.debug(f"Using min_instance_slice parameter {min_instance_slice}.")
-        logger.info(f"SPN training phase with {len(df_samples)} samples")
+        logger.info(f"FACE training phase with {len(df_samples)} samples")
         spn_learn_start_t = perf_counter()
         # min_instances_slice, rdc_threshold   # modify
         aqp_spn.learn(df_samples.values, min_instances_slice=min_instance_slice, bloom_filters=bloom_filters,
@@ -266,9 +266,9 @@ def candidate_evaluation(schema, meta_data_path, sample_size, spn_sample_size, m
         spn_inc_learn_end_t = 0
         if (incremental_learning_rate > 0 or incremental_condition is not None):
             if (omit_incremental):
-                logger.info(f"no additional incremental SPN training phase with {len(df_inc_samples)} samples ")
+                logger.info(f"no additional incremental FACE training phase with {len(df_inc_samples)} samples ")
             else:
-                logger.info(f"additional incremental SPN training phase with {len(df_inc_samples)} samples ")
+                logger.info(f"additional incremental FACE training phase with {len(df_inc_samples)} samples ")
 
                 spn_inc_learn_start_t = perf_counter()
                 aqp_spn.learn_incremental(df_inc_samples.values)

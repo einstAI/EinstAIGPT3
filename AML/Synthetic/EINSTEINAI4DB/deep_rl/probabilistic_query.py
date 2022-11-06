@@ -13,21 +13,21 @@ class IndicatorExpectation:
     Represents E[1_{conditions} * 1/ denominator_multipliers].
     """
 
-    def __init__(self, denominator_multipliers, conditions, nominator_multipliers=None, spn=None, inverse=False,
+    def __init__(self, denominator_multipliers, conditions, nominator_multipliers=None, FACE=None, inverse=False,
                  table_set=None):
         self.nominator_multipliers = nominator_multipliers
         if self.nominator_multipliers is None:
             self.nominator_multipliers = []
         self.denominator_multipliers = denominator_multipliers
         self.conditions = conditions
-        self.spn = spn
+        self.FACE = FACE
         self.min_val = 0
         self.inverse = inverse
         self.table_set = table_set
         if table_set is None:
             self.table_set = set()
-        if self.spn is not None:
-            self.min_val = 1 / self.spn.full_join_size
+        if self.FACE is not None:
+            self.min_val = 1 / self.FACE.full_join_size
 
     def contains_groupby(self, group_bys):
         for table, attribute in group_bys:
@@ -102,11 +102,11 @@ class Expectation:
     Represents conditional expectation of feature with normalizing multipliers.
     """
 
-    def __init__(self, features, normalizing_multipliers, conditions, spn=None):
+    def __init__(self, features, normalizing_multipliers, conditions, FACE=None):
         self.features = features
         self.normalizing_multipliers = normalizing_multipliers
         self.conditions = conditions
-        self.spn = spn
+        self.FACE = FACE
         self.min_val = 1
 
     def matches(self, other_expectation, ignore_spn=False):
@@ -116,13 +116,13 @@ class Expectation:
             return False
         if set(self.conditions) != set(other_expectation.conditions):
             return False
-        if not ignore_spn and self.spn != other_expectation.spn:
+        if not ignore_spn and self.FACE != other_expectation.FACE:
             return False
         return True
 
     def __hash__(self):
         return hash((FactorType.EXPECTATION, frozenset(self.features), frozenset(self.normalizing_multipliers),
-                     frozenset(self.conditions), self.spn))
+                     frozenset(self.conditions), self.FACE))
 
     def __str__(self):
         """

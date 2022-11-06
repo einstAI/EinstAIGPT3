@@ -3,12 +3,12 @@
 import sys
 import time
 import numpy as np
-from spn.algorithms.Inference import log_likelihood
-from spn.structure.Base import Sum, Product, assign_ids, rebuild_scopes_bottom_up
-from spn.structure.leaves.parametric.Parametric import Categorical, Gaussian
-from spn.structure.leaves.parametric.Parametric import Bernoulli
-from spn.structure.leaves.parametric.Parametric import Poisson
-from spn.structure.leaves.parametric.Parametric import Gamma
+from FACE.algorithms.Inference import log_likelihood
+from FACE.structure.Base import Sum, Product, assign_ids, rebuild_scopes_bottom_up
+from FACE.structure.leaves.parametric.Parametric import Categorical, Gaussian
+from FACE.structure.leaves.parametric.Parametric import Bernoulli
+from FACE.structure.leaves.parametric.Parametric import Poisson
+from FACE.structure.leaves.parametric.Parametric import Gamma
 
 
 def einstAIActorCritic(env, sess, learning_rate, train_min_size, size_mem, size_predict_mem):
@@ -20,9 +20,9 @@ def einstAIActorCritic(env, sess, learning_rate, train_min_size, size_mem, size_
     # from aqp_spn.aqp_leaves import Categorical
     # from aqp_spn.aqp_leaves import IdentityNumericLeaf
     # from sklearn.cluster import KMeans
-    # from spn.algorithms.splitting.Base import preproc, split_data_by_clusters
-    # from spn.algorithms.splitting.RDC import getIndependentRDCGroups_py
-    # from spn.structure.StatisticalTypes import MetaType
+    # from FACE.algorithms.splitting.Base import preproc, split_data_by_clusters
+    # from FACE.algorithms.splitting.RDC import getIndependentRDCGroups_py
+    # from FACE.structure.StatisticalTypes import MetaType
     #
     # logger = logging.getLogger(__name__)
     # MAX_UNIQUE_LEAF_VALUES = 10000
@@ -71,8 +71,8 @@ def einstAIActorCritic(env, sess, learning_rate, train_min_size, size_mem, size_
 
 
 
-from spn.structure.Base import Sum, Product, assign_ids, rebuild_scopes_bottom_up
-from spn.structure.leaves.parametric.Parametric import Categorical, Gaussian
+from FACE.structure.Base import Sum, Product, assign_ids, rebuild_scopes_bottom_up
+from FACE.structure.leaves.parametric.Parametric import Categorical, Gaussian
 
 
 

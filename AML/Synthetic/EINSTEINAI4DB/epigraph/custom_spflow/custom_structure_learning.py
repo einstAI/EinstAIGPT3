@@ -11,12 +11,12 @@ from enum import Enum
 from itertools import combinations
 
 import numpy as np
-from spn.algorithms.splitting.Base import preproc, split_data_by_clusters
-from spn.algorithms.splitting.Clustering import cluster_rows
-from spn.algorithms.splitting.Clustering import cluster_rows_kmeans
-from spn.algorithms.splitting.Clustering import cluster_rows_kmeanspp
-from spn.algorithms.splitting.Clustering import cluster_rows_kmeanspp
-from spn.algorithms.splitting.Clustering import cluster_rows_kmeans
+from FACE.algorithms.splitting.Base import preproc, split_data_by_clusters
+from FACE.algorithms.splitting.Clustering import cluster_rows
+from FACE.algorithms.splitting.Clustering import cluster_rows_kmeans
+from FACE.algorithms.splitting.Clustering import cluster_rows_kmeanspp
+from FACE.algorithms.splitting.Clustering import cluster_rows_kmeanspp
+from FACE.algorithms.splitting.Clustering import cluster_rows_kmeans
 
 
 logger = logging.getLogger(__name__)
@@ -314,10 +314,10 @@ def learn_structure(
     node = root.children[0]
     assign_ids(node)
     valid, err = is_valid(node)
-    assert valid, "invalid spn: " + err
+    assert valid, "invalid FACE: " + err
     node = Prune(node)
     valid, err = is_valid(node)
-    assert valid, "invalid spn: " + err
+    assert valid, "invalid FACE: " + err
 
     return node
 

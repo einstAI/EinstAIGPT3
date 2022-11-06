@@ -1,9 +1,69 @@
 import argparse
 
+
 import pandas as pd
-import psycopg2
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from anyio.streams import file
+from matplotlib import rcParams
+import sys
+import os
+
 from physical_db import DBConnection, TrueCardinalityEstimator
 from tqdm import tqdm
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--db_name",
+        type=str,
+        default="tpch",
+        help="Database name",
+    )
+    parser.add_argument(
+        "--db_path",
+        type=str,
+        default="data/tpch",
+        help="Path to the database",
+    )
+    parser.add_argument(
+        "--query_file",
+        type=str,
+        default="data/tpch/tpch_queries.txt",
+        help="Path to the query file",
+    )
+    parser.add_argument(
+        "--output_file",
+        type=str,
+        default="data/tpch/tpch_true_card.txt",
+        help="Path to the output file",
+    )
+    parser.add_argument(
+        "--num_workers",
+        type=int,
+        default=1,
+        help="Number of workers",
+    )
+    args = parser.parse_args()
+
+    db = DBConnection(args.db_name, args.db_path)
+    true_card = TrueCardinalityEstimator(db, args.num_workers)
+
+    with open(args.query_file, "r") as f:
+        queries = f.readlines()
+
+    with open(args.output_file, "w") as f:
+        for query in tqdm(queries):
+            true_cardinality = true_card.estimate(query)
+            f.write(f"{query.strip()}\t{true_cardinality}\n")
+
+
+if __name__ == "__main__":
+    main()
+
+
 
 parser = argparse.ArgumentParser(description='get_truecard')
 
@@ -35,11 +95,10 @@ except Exception as e:
 df = pd.read_csv('./csvdata_sql/' + version + '.csv', sep=',', escapechar='\\', encoding='utf-8', low_memory=False,
                  quotechar='"')
 columns = tuple(df.columns)
-# connection = psycopg2.connect(user='postgres', host="/var/run/postgresql", database='postgres')
-connection = psycopg2.connect(user='jintao', host="localhost", database='autocard', password="jintao2020")
+connection = db_connection.connection
 cur = connection.cursor()
-file = open('./csvdata_sql/' + version + '_nohead.csv', 'r')  # Read a file without a header
-cur.copy_from(file, version, sep=',')
+cur.copy_from(file, version, sep=',') # copy from file object
+
 connection.commit()
 
 true_estimator = TrueCardinalityEstimator(db_connection)

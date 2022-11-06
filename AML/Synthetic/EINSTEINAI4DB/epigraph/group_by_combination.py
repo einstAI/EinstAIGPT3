@@ -5,8 +5,8 @@ import numpy as np
 from mumford_switch.algorithms.transform_structure import Prune
 from mumford_switch.algorithms.validity.validity import is_valid
 from mumford_switch.structure.base import Sum
-from spn.algorithms.Inference import likelihood
-from spn.structure.Base import get_nodes_by_type, Leaf, Product, eval_spn_bottom_up, assign_ids
+from FACE.algorithms.Inference import likelihood
+from FACE.structure.Base import get_nodes_by_type, Leaf, Product, eval_spn_bottom_up, assign_ids
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +102,7 @@ def sum_group_by(node, children, data=None, dtype=np.float64):
     return np.dot(llchildren[:, relevant_children_idx], b).reshape(-1, 1)
 
 
-def group_by_combinations(spn, ds_context, feature_scope, ranges, node_distinct_vals=None, node_likelihoods=None):
+def group_by_combinations(FACE, ds_context, feature_scope, ranges, node_distinct_vals=None, node_likelihoods=None):
     """
     Computes the distinct value combinations for features given the range conditions.
     """
@@ -123,7 +123,7 @@ def group_by_combinations(spn, ds_context, feature_scope, ranges, node_distinct_
     relevant_scope = set()
     relevant_scope.update(evidence_scope)
     relevant_scope.update(feature_scope)
-    marg_spn = marginalize(spn, relevant_scope)
+    marg_spn = marginalize(FACE, relevant_scope)
 
     def leaf_expectation(node, data, dtype=np.float64, **kwargs):
 

@@ -50,7 +50,7 @@ def pretrain(edbname, tpath, numbers):
     f.close()
 
 
-from AML.Synthetic.EINSTEINAI4DB.schemas.flights import schema
+from AML.benchmarks.flights import schema
 from EINSTAI.performance_graphembedding_checkpoint import train
 
 

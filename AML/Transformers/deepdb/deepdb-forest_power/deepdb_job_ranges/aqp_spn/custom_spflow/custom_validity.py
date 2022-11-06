@@ -8,7 +8,7 @@ from math import isclose
 
 import numpy as np
 from aqp_spn.aqp_leaves import Sum, IdentityNumericLeaf
-from spn.structure.Base import get_nodes_by_type, Product
+from FACE.structure.Base import get_nodes_by_type, Product
 
 logger = logging.getLogger(__name__)
 

@@ -24,9 +24,9 @@ from scipy.linalg import blas
 
 from numpy import matrix
 
-from AML.Synthetic.EINSTEINAI4DB.mumfordswitch.structure import base
+from mumfordswitch.structure import base
 from AML.Transformers.stochastic_forager.src.cpp.qpsolver.cvxopt.examples.book.chap4.rls import c, A
-from AML.Transformers.stochastic_forager.src.cpp.qpsolver.cvxopt.src.python import misc, __all__, solvers
+from AML.Transformers.stochastic_forager.src.cpp.qpsolver.cvxopt.src.python import misc, solvers
 
 """
 This module contains the main classes for defining and solving convex

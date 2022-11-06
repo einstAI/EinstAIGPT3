@@ -4,7 +4,7 @@ from math import isclose
 import numpy as np
 from mumford_switch.structure.base import Sum
 from mumford_switch.structure.leaves import IdentityNumericLeaf
-from spn.structure.Base import get_nodes_by_type, Product
+from FACE.structure.Base import get_nodes_by_type, Product
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,68 @@
-import argparse
+import argpar
 import os
+import sys
+import time
+from argparse import ArgumentParser
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+from anyio.streams import file
+from matplotlib import rcParams
+from tqdm import tqdm
+
+from physical_db import DBConnection, TrueCardinalityEstimator
+
+def main():
+
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--db_name",
+        type=str,
+        default="tpch",
+        help="Database name",
+    )
+    parser.add_argument(
+        "--db_path",
+        type=str,
+        default="data/tpch",
+        help="Path to the database",
+    )
+    parser.add_argument(
+        "--query_file",
+        type=str,
+        default="data/tpch/tpch_queries.txt",
+        help="Path to the query file",
+    )
+    parser.add_argument(
+        "--output_file",
+        type=str,
+        default="data/tpch/tpch_true_card.txt",
+        help="Path to the output file",
+    )
+    parser.add_argument(
+        "--num_workers",
+        type=int,
+        default=1,
+        help="Number of workers",
+    )
+    args = parser.parse_args()
+
+    db = DBConnection(args.db_name, args.db_path)
+    true_card = TrueCardinalityEstimator(db, args.num_workers)
+
+    with open(args.query_file, "r") as f:
+        queries = f.readlines()
+
+    with open(args.output_file, "w") as f:
+        for query in tqdm(queries):
+            true_cardinality = true_card.estimate(query)
+            f.write(f"{query.strip()}\t{true_cardinality}\n")
+
+if __name__ == "__main__":
+    main()
+
 
 parser = argparse.ArgumentParser(description='mscn')
 
@@ -30,6 +93,8 @@ run = 'python3 maqp.py --evaluate_cardinalities --rdc_spn_selection --max_varian
       '--target_path ../../sql_truecard/' + version + 'test.sql.EINSTEINAI4DB.results.csv ' + '--ensemble_location ../../sql_truecard/' + version + \
       '.sql.EINSTEINAI4DB.model.pkl ' + '--query_file_location ../../sql_truecard/' + version + 'test.sql ' + '--ground_truth_file_location ./benchmarks/job-light/sql/true_cardinalities.csv --version ' + version
 
+
+# Path: AML/Synthetic/run_deepdb.py
 os.chdir('EINSTEINAI4DB/deepdb_job_ranges')
 os.system(pre)
 os.system(run)
@@ -39,3 +104,6 @@ python3 maqp.py --evaluate_cardinalities --rdc_spn_selection --max_variants 1 --
  --target_path ./sql_truecard/imdb_light_model_based_budget_5.csv --ensemble_location ./sql_truecard/ensemble_join_3_budget_5_10000000.pkl
  --query_file_location ./sql_truecard/test-only2-num.sql --ground_truth_file_location ./benchmarks/job-light/sql/true_cardinalities.csv
 '''
+
+
+
