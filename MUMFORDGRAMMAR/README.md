@@ -1,4 +1,4 @@
-Learned Cardinalities in PyTorch
+Mumford 
 ====
 
 PyTorch implementation of multi-set convolutional networks (MSCNs) to estimate the result sizes of SQL queries [1, 2].

@@ -11,7 +11,7 @@ from AML.Synthetic.EINSTEINAI4DB.deep_rl.spn_ensemble import read_ensemble
 from AML.Synthetic.EINSTEINAI4DB.ensemble_creation.naive import create_naive_all_split_ensemble, naive_every_relationship_ensemble
 from AML.Synthetic.EINSTEINAI4DB.ensemble_creation.rdc_based import candidate_evaluation
 from AML.Synthetic.EINSTEINAI4DB.ensemble_creation.confidence_interval_evaluation import evaluate_confidence_intervals
-from mumfordswitch.code_generation.generate_code import generate_ensemble_code
+from MUMFORDGRAMMAR.mumfordswitch import generate_ensemble_code
 from AML.benchmarks import gen_flights_1B_schema
 from AML.benchmarks.imdb import gen_job_light_imdb_schema, gen_job_ranges_imdb_schema
 from AML.Synthetic.EINSTEINAI4DB.schemas.ssb.schema import gen_500gb_ssb_schema

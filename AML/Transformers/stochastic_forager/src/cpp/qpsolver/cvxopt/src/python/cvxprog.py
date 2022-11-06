@@ -24,7 +24,7 @@ from scipy.linalg import blas
 
 from numpy import matrix
 
-from mumfordswitch.structure import base
+from MUMFORDGRAMMAR.mumfordswitch.structure import base
 from AML.Transformers.stochastic_forager.src.cpp.qpsolver.cvxopt.examples.book.chap4.rls import c, A
 from AML.Transformers.stochastic_forager.src.cpp.qpsolver.cvxopt.src.python import misc, solvers
 
