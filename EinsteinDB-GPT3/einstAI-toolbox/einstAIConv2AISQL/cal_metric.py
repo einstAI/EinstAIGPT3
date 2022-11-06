@@ -1,20 +1,127 @@
 import os
-import psycopg2
+
 import pandas as pd
 from matplotlib import pyplot as plt
 import numpy as np
 import base
 
-# 统计重复率：
+
+def cal_statistic(edbname):
+    root_path = os.path.abspath('.') + '/' + edbname
+    metric_path = root_path + '/' + '{0}_metric'.format(edbname)
+    query_cost = pd.read_csv(metric_path, index_col=0)
+    can_execute_query = query_cost.loc[query_cost['can_execute'] == True]
+    can_execute_query_count = can_execute_query.shape[0]
+    query_cost_equal_zero_count = can_execute_query.loc[can_execute_query['cost'] == 0].shape[0]
+    print('can execute query count:', can_execute_query_count)
+    print('query cost equal zero count:', query_cost_equal_zero_count)
+    print('query cost equal zero rate:', query_cost_equal_zero_count / can_execute_query_count)
+
+
+
+def show_cost_distribute(edbname):
+    root_path = os.path.abspath('.') + '/' + edbname
+    metric_path = root_path + '/' + '{0}_metric'.format(edbname)
+    query_cost = pd.read_csv(metric_path, index_col=0)
+    can_execute_query = query_cost.loc[query_cost['can_execute'] == True]
+    can_execute_query_count = can_execute_query.shape[0]
+    query_cost_equal_zero_count = can_execute_query.loc[can_execute_query['cost'] == 0].shape[0]
+    print('can execute query count:', can_execute_query_count)
+    print('query cost equal zero count:', query_cost_equal_zero_count)
+    print('query cost equal zero rate:', query_cost_equal_zero_count / can_execute_query_count)
+    # 统计cost分布
+    cost = can_execute_query.loc[can_execute_query['cost'] != 0, 'cost']
+    cost = cost.sort_values()
+    cost = cost.reset_index(drop=True)
+    cost = cost / 1000
+    cost = cost.astype(np.int)
+    cost = cost.value_counts()
+    cost = cost.sort_index()
+    cost = cost.reset_index()
+    cost.columns = ['cost', 'count']
+    cost['rate'] = cost['count'] / can_execute_query_count
+    cost.to_csv(root_path + '/cost_distribute', index=False)
+    print(cost)
+    plt.plot(cost['cost'], cost['rate'])
+    plt.show()
+
+
+
+
 
 def cal_duplicate_rate(edbname):
     root_path = os.path.abspath('.') + '/' + edbname
-    query_file_list = os.listdir(root_path)
+    query_file_list = os.listdir(root_path + '/query')
     queries = []
     for query_file in query_file_list:
         path = root_path + '/' + query_file
         with open(path, 'r') as f:
-            queries.extend(f.read().split(';'))
+            query = f.read()
+            queries.append(query)
+            queries.append(f.read())
+    queries = set(queries)
+    print('duplicate rate:', 1 - len(queries) / len(query_file_list))
+
+
+def cal_can_execute_rate(edbname):
+    root_path = os.path.abspath('.') + '/' + edbname
+    metric_path = root_path + '/' + '{0}_metric'.format(edbname)
+    query_cost = pd.read_csv(metric_path, index_col=0)
+
+    total_query_count = query_cost.shape[0]
+    can_execute_query_count = query_cost.loc[query_cost['can_execute'] == True].shape[0]
+    execute_rate = can_execute_query_count / total_query_count
+    print('can execute rate:', execute_rate)
+    with open(root_path + '/execute_rate', 'w') as f:
+        f.write(str(execute_rate))
+
+
+if __name__ == '__main__':
+    edbname = 'tpch'
+    cal_duplicate_rate(edbname)
+    cal_can_execute_rate(edbname)
+    show_cost_distribute(edbname)
+    cal_statistic(edbname)
+
+
+## Disjoin Path
+
+# Path: EinsteinDB-GPT3/einstAI-toolbox/einstAIConv2AISQL/disjoin_path.py
+
+
+
+def cal_duplicate_rate(edbname):
+    root_path = os.path.abspath('.') + '/' + edbname
+    query_file_list = os.listdir(root_path + '/query')
+    queries = []
+
+    for query_file in query_file_list:
+        path = root_path + '/' + query_file
+        with open(path, 'r') as f:
+            query = f.read()
+            queries.append(query)
+            queries.append(f.read())
+    queries = set(queries)
+    print('duplicate rate:', 1 - len(queries) / len(query_file_list))
+
+
+    if __name__ == '__main__':
+        edbname = 'tpch'
+        cal_duplicate_rate(edbname)
+        cal_can_execute_rate(edbname)
+        show_cost_distribute(edbname)
+        cal_statistic(edbname)
+
+
+
+        for query_file in query_file_list:
+            path = root_path + '/' + query_file
+            with open(path, 'r') as f:
+                query = f.read()
+                queries.append(query)
+                queries.append(f.read())
+                if query in queries:
+                    print('duplicate query:', query)
     total_query_count = len(queries)
     uniq_query_count = len(set(queries))
     duplicate_rate = (total_query_count - uniq_query_count) / total_query_count
@@ -41,7 +148,10 @@ def show_cost_distribute(edbname):
     root_path = os.path.abspath('.') + '/' + edbname
     metric_path = root_path + '/' + '{0}_metric'.format(edbname)
     query_cost = pd.read_csv(metric_path, index_col=0)
-    # 可视化分布
+    can_execute_query = query_cost.loc[query_cost['can_execute'] == True]
+    can_execute_query_count = can_execute_query.shape[0]
+    query_cost_equal_zero_count = can_execute_query.loc[can_execute_query['cost'] == 0].shape[0]
+
     fig = plt.figure()
     plt.style.use('ggplot')
     plt.title('cost distribution')

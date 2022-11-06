@@ -1,4 +1,14 @@
 #!/bin/bash
+#
+
+
+#
+# This script creates a program.
+#
+
+
+# Path: EinsteinDB-GPT3/src-EinsteinDBGPT3/einsteindb-gpt3-da-vinci-1/create_program.sh
+
 
 function red_c()
 {
@@ -41,6 +51,38 @@ cp $basedir/tools/etc   $pkg_program/       -R
 mv $pkg_program/etc/dapp.conf $pkg_program/etc/${program}.conf
 mv $pkg_program/etc/dapp.yml  $pkg_program/etc/${program}.yml
 
+cyan_c "copy systemd service..."
+cp $basedir/tools/systemd/* $pkg_program/tools/ -R
+mv $pkg_program/tools/systemd/dapp.service $pkg_program/tools/systemd/${program}.service
+
+
+cyan_c "copy logrotate..."
+cp $basedir/tools/logrotate/* $pkg_program/tools/ -R
+mv $pkg_program/tools/logrotate/dapp $pkg_program/tools/logrotate/${program}
+
+cyan_c "copy README.md..."
+cp $basedir/README.md $pkg_program/
+
+cyan_c "copy LICENSE..."
+cp $basedir/LICENSE $pkg_program/
+
+cyan_c "copy CHANGELOG.md..."
+cp $basedir/CHANGELOG.md $pkg_program/
+
+
+cyan_c "copy package.json..."
+cp $basedir/package.json $pkg_program/
+
+cyan_c "copy package-lock.json..."
+cp $basedir/package-lock.json $pkg_program/
+
+cyan_c "copy .gitignore..."
+cp $basedir/.gitignore $pkg_program/
+
+cyan_c "copy .npmignore..."
+cp $basedir/.npmignore $pkg_program/
+
+
 cyan_c "generate code..."
 cp $basedir/tools/code/* $program/
 sed -i 's/<PROGRAM>/'$app_name'/' $program/dapp.go
@@ -49,3 +91,7 @@ sed -i 's/<PROGRAM>/'$program'/' $pkg_program/etc/${program}.conf
 sed -i 's/<PROGRAM>/'$program'/' $pkg_program/etc/${program}.yml
 
 cyan_c "Done."
+
+
+
+

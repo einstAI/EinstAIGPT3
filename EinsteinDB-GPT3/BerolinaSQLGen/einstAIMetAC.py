@@ -1,3 +1,7 @@
+#Copyright (c) EinstAI 2020 All Rights Reserved.
+
+
+
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, optimizers

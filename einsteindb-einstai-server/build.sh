@@ -9,6 +9,10 @@ EINSTEINDB_LOGS=$EINSTEINDB_HOME/logs
 EINSTEINDB_PID=$EINSTEINDB_HOME/einsteindb.pid
 
 
+
+
+
+
 # check einsteindb home
 if [ ! -d $EINSTEINDB_HOME ]; then
     echo "$PROGRAM: einsteindb home not found: $EINSTEINDB_HOME"

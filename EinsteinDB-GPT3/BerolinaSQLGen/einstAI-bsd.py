@@ -8,6 +8,8 @@
 
 import sys
 from shlex import join
+from subprocess import Popen, PIPE
+
 
 import base
 import numpy as np
@@ -16,6 +18,8 @@ from pandas.core.interchange import buffer
 from torch.cuda import memory
 
 from treelib import Tree
+from treelib import Node
+
 
 
 def get_node(tree, edbname):
@@ -23,6 +27,13 @@ def get_node(tree, edbname):
     if node is None:
         node = tree.create_node(edbname, edbname, parent='root')
     return node
+
+
+def get_tree(edbname):
+    tree = Tree()
+    tree.create_node('root', 'root', data=edbname)
+    return tree
+
 
 def pretrain(edbname, tpath, numbers):
     env = GenSqlEnv(metric=100000, edbname=edbname, target_type=0)
@@ -66,12 +77,8 @@ def get_node(tree, edbname):
     return node
 
 
+
 sys.path.append('..')
-
-
-def pretrain(edbname, tpath, numbers):
-
-
 np.set_printoptions(threshold=np.inf)
 
 
@@ -107,6 +114,8 @@ keyword = ['from', 'where']
 # min = ['min']
 # as = ['as']
 # select = ['select']
+
+
 
 
 
