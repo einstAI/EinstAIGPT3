@@ -63,6 +63,20 @@ class BaseIntegrator(ABC):
         # Set the options
         self.options = options
 
+        # Set the backend
+        if self.backend == "torch":
+            self.backend = torch
+        else:
+            raise ValueError(f"Unsupported backend: {self.backend}")
+
+        # Set the device
+        if isinstance(self.device, str):
+            self.device = torch.device(self.device)
+        elif isinstance(self.device, torch.device):
+            pass
+
+
+
     @abstractmethod
     def integrate(
         self,
@@ -116,7 +130,8 @@ class BaseIntegrator(ABC):
         """
         _check_integration_domain(domain)
 
-    def _check_integration_domain(self, domain: Union[np.ndarray, torch.Tensor]) -> None:
+    @staticmethod
+    def _check_integration_domain(domain: Union[np.ndarray, torch.Tensor]) -> None:
         """Check if the integration domain is valid.
 
         Args:
@@ -124,6 +139,9 @@ class BaseIntegrator(ABC):
 
         Raises:
             ValueError: If the integration domain is invalid.
+            :rtype: None
+
+
         """
         _check_integration_domain(domain)
 

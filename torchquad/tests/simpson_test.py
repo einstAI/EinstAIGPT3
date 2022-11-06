@@ -1,6 +1,39 @@
+#copyright 2019-2021, The torchquad Authors
+#copyright 2019-2021, The EinsteinDB Authors
+#path: torchquad/tests/test_integration.py
+
 import sys
+import os
+
+import pytest
+import torch
+import torch.nn as nn
+
+class TestSimpson(nn.Module):
+    """Test class for the Simpson class."""
+
+    def __init__(self):
+        super(TestSimpson, self).__init__()
+        self.simpson = Simpson()
+
+    def forward(self, x):
+        """Forward pass."""
+        return self.simpson.integrate(x)
+
+    def test_simpson(self):
+        """Test the Simpson class."""
+        x = torch.tensor([0.0, 1.0, 2.0, 3.0, 4.0, 5.0])
+        y = self.forward(x)
+        assert y == 12.5
+
+    def test_simpson_uneven(self):
+        """Test the Simpson class with uneven spacing."""
+        x = torch.tensor([0.0, 1.0, 2.0, 3.0, 4.0, 5.0])
+        y = self.forward(x)
+        assert y == 12.5
 
 from jedi.plugins import pytest
+
 
 sys.path.append("../")
 
@@ -74,6 +107,9 @@ def _run_simpson_tests(backend, _precision):
     if backend == "tensorflow":
         print("Skipping tensorflow 10D tests")
         return
+
+
+
 
     # 10D Tests
     N = 3**10

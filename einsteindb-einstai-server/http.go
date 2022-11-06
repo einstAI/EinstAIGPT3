@@ -5,12 +5,13 @@ import (
 	"net/http"
 	"strconv"
 
-	. "git.code.oa.com/gocdb/base/public"
 	. "git.code.oa.com/gocdb/base/public/err"
 	. "git.code.oa.com/gocdb/base/public/log"
 	. "git.code.oa.com/gocdb/base/public/prot"
 	. "git.code.oa.com/gocdb/base/public/prot/tune"
 	. "git.code.oa.com/gocdb/base/public/prot/tune/task"
+	. "git.code.oa.com/gocdb/base/public/prot/tune/task/result"
+
 	. "git.code.oa.com/gocdb/base/public/prot/tune/task/result"
 )
 
@@ -43,9 +44,29 @@ func SendRsp(w http.ResponseWriter, data interface{}, err error) error {
 		TLog.Errorf("SendHttpJsonRsp failed +%v", err2)
 	}
 	return err2
+
+}
+
+func (dapp *TuneServer) HandleQueryTask(w http.ResponseWriter, r *http.Request) {
+	fields := []string{"task_id"}
+	if ok, err := isEmpty(r, fields...); !ok {
+		SendRsp(w, nil, err)
+		return
+	}
+	task_id, err := getIntField(r, "task_id")
+	if err != nil {
+		SendRsp(w, nil, err)
+		return
+	}
+	ti, err := QueryTask(dapp, task_id)
+	if !hasErr(w, err) {
+		SendRsp(w, ti, nil)
+	}
+
 }
 
 func SendJson(w http.ResponseWriter, rsp ProtCommonRsp) interface{} {
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	return json.NewEncoder(w).Encode(rsp)
@@ -83,6 +104,24 @@ func (dapp *TuneServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.NotFound(w, r)
 		return
+	}
+}
+
+func (dapp *TuneServer) HandleCreateTask(w http.ResponseWriter, r *http.Request) {
+	fields := []string{"task_type", "task_param"}
+	if ok, err := isEmpty(r, fields...); !ok {
+		SendRsp(w, nil, err)
+		return
+	}
+	task_type, err := getIntField(r, "task_type")
+	if err != nil {
+		SendRsp(w, nil, err)
+		return
+	}
+	task_param := r.FormValue("task_param")
+	task_id, err := CreateTask(dapp, task_type, task_param)
+	if !hasErr(w, err) {
+		SendRsp(w, task_id, nil)
 	}
 }
 
@@ -133,20 +172,30 @@ func (dapp *TuneServer) HandleCreateTask(w http.ResponseWriter, r *http.Request)
 	if !hasErr(w, err) {
 		SendRsp(w, ti, nil)
 	}
-	//TODO 基于channel 运行
+
 	go ti.Run(dapp)
 }
-func (dapp *TuneServer) HandleQueryTask(w http.ResponseWriter, r *http.Request) {
-	tid, err := getIntField(r, "task_id")
-	// var timeBase time.Time
-	if !hasErr(w, err) {
-		tInfo := &TaskInfo{}
-		err := dapp.QueryByIndex(TB_TASK, "task_id", tid, tInfo)
-		if !hasErr(w, err) {
-			SendRsp(w, tInfo, nil)
-		}
+func (dapp *TuneServer) SolitonFilter(w http.ResponseWriter, r *http.Request) {
+	fields := []string{"task_id", "sql"}
+	if ok, err := isEmpty(r, fields...); !ok {
+		SendRsp(w, nil, err)
+		return
 	}
+	task_id, err := getIntField(r, "task_id")
+	if err != nil {
+		SendRsp(w, nil, err)
+		return
+	}
+	sql := r.FormValue("sql")
+	ti, err := QueryTask(dapp, task_id)
+	if !hasErr(w, err) {
+		SendRsp(w, ti, nil)
+	}
+	ti.SolitonFilter(dapp, sql)
 }
+
+// =============================== http ===============================
+
 func (dapp *TuneServer) HandleUpdateTask(w http.ResponseWriter, r *http.Request) {
 	tid, err := getIntField(r, "task_id")
 	errMsg := r.FormValue("error")

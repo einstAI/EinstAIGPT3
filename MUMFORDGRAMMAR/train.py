@@ -7,18 +7,13 @@
 
 import argparse
 import os
-import sys
 import time
 
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
 
-from AML.Transformers.bayesian.eval_model import parser
-from mscn.data import get_train_datasets, load_data, make_dataset
-from mscn.model import SetConv
-from mscn.util import *
+from MUMFORDGRAMMAR.data import get_train_datasets, load_data, make_dataset
+from MUMFORDGRAMMAR.model import SetConv
+from MUMFORDGRAMMAR.util import *
 from scipy import stats
 from torch.autograd import Variable
 from torch.utils.data import DataLoader

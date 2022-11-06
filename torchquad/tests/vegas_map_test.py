@@ -1,4 +1,19 @@
 import sys
+import os
+
+
+
+def _check_tensor_similarity(a, b, err_abs_max=0.0, expected_dtype=None):
+    """Check if two tensors have the same dtype, shape and are equal up to a specified error"""
+    if expected_dtype:
+        assert a.dtype == b.dtype == expected_dtype
+    else:
+        assert a.dtype == b.dtype
+    assert a.shape == b.shape
+    assert anp.max(anp.abs(a - b)) <= err_abs_max
+
+
+
 
 sys.path.append("../")
 
