@@ -1,7 +1,56 @@
-# torchquad
+# EinstAI
 <!--
 *** Based on https://github.com/othneildrew/Best-README-Template
+*** Thanks to othneildrew for this awesome template!
+
 -->
+
+<!-- PROJECT LOGO -->
+<br />
+<p align="center">
+  <a href=" ">
+    <img src="images/logo.png" alt="Logo" width="80" height="80">
+    </a>
+
+    <h3 align="center">EinstAI</h3>
+
+
+    <p align="center">
+    EinstAI is a project that aims to provide a simple and easy to use interface for the user to interact with the AI4DB project: EinsteinDB with GPT3 and GPTNeo.
+    <br />
+
+    <a href=" ">View Demo</a>
+    ·
+    <a href=" ">Report Bug</a>
+    ·
+    <a href=" ">Request Feature</a>
+    </p>
+    </p>
+
+<!-- TABLE OF CONTENTS -->
+<details open="open">
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#built-with">Built With</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#acknowledgements">Acknowledgements</a></li>
+  </ol>
 
 ![Read the Docs (version)](https://img.shields.io/readthedocs/torchquad/main?style=flat-square) ![GitHub Workflow Status (branch)](https://img.shields.io/github/workflow/status/esa/torchquad/Running%20tests/main?style=flat-square) ![GitHub last commit](https://img.shields.io/github/last-commit/esa/torchquad?style=flat-square)
 ![GitHub](https://img.shields.io/github/license/esa/torchquad?style=flat-square) ![Conda (channel only)](https://img.shields.io/conda/vn/conda-forge/torchquad?style=flat-square) ![PyPI](https://img.shields.io/pypi/v/torchquad?style=flat-square) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/torchquad?style=flat-square)
@@ -29,7 +78,21 @@
     ·
     <a href="https://github.com/esa/torchquad/issues">Request Feature</a>
   </p>
-</p>
+
+
+<!-- ABOUT THE PROJECT -->
+## About The Project
+
+![Torchquad logo](logos/torchquad_white_background_PNG.png)
+
+Torchquad is a high-performance numerical integration library for PyTorch, JAX and Tensorflow. Torchquad provides a unified interface for multiple numerical integration methods and allows the user to easily switch between them. The library is designed with a modular architecture to allow easy integration of new integration methods and to make it easy for the user to create their own integration methods.
+
+Torchquad is designed to be used in a variety of applications, such as Bayesian inference and machine learning. Torchquad is also designed to be used in high-performance computing environments, such as HPC clusters.
+
+### Built With
+
+* [PyTorch](https://pytorch.org/)
+* [JAX](
 
 
 
@@ -82,18 +145,35 @@ If torchquad proves useful to you, please consider citing the [accompanying pape
 <!-- GOALS -->
 ## Goals
 
-
+* **Supporting AI4DB** - Torchquad is designed to be used in the context of the [AI4DB](https://www.ai4db.eu/) project. AI4DB is a European project that aims to develop a new generation of AI-based tools for the analysis of large-scale data sets in the field of Earth Observation. The project is funded by the European Union’s Horizon 2020 research and innovation programme under grant agreement No 101017734.
+* **High-performance** - Torchquad is designed to be used in high-performance computing environments, such as HPC clusters.
+* **Easy to use** - Torchquad is designed to be easy to use and to allow the user to easily switch between different integration methods.
 * **Supporting science**:  Multidimensional numerical integration is needed in many fields, such as physics (from particle physics to astrophysics), in applied finance, in medical statistics, and others. torchquad aims to assist research groups in such fields, as well as the general machine learning community.
 * **Withstanding the curse of dimensionality**: The [curse of dimensionality](https://en.wikipedia.org/wiki/Curse_of_dimensionality) makes deterministic methods in particular, but also stochastic ones, computationally expensive when the dimensionality increases. However, many integration methods are [embarrassingly parallel](https://en.wikipedia.org/wiki/Embarrassingly_parallel), which means they can strongly benefit from GPU parallelization. The curse of dimensionality still applies but the improved scaling alleviates the computational impact.
 * **Delivering a convenient and functional tool**: torchquad is built with autoray, which means it is [fully differentiable](https://en.wikipedia.org/wiki/Differentiable_programming) if the user chooses, for example, PyTorch as the numerical backend. Furthermore, the library of available and upcoming methods in torchquad offers high-effeciency integration for any need.
+* **EinsteinDB** - Torchquad is designed to be used in the context of the [EinsteinDB](https://www.einstein-db.eu/) project. EinsteinDB is a European project that aims to develop a new generation of AI-based tools for the analysis of large-scale data sets in the field of gravitational wave astronomy. The project is funded by the European Union’s Horizon 2020 research and innovation programme under grant agreement No 101017734.
+* **Supporting the ESA** - Torchquad is designed to be used in the context of the [ESA](https://www.esa.int/). The European Space Agency is an intergovernmental organisation of 22 member states, dedicated to the exploration of space. The ESA is funded by the European Union’s Horizon 2020 research and innovation programme under grant agreement No 101017734.
+
+
+
 
 
 <!-- GETTING STARTED -->
 ## Getting Started
 
-This is a brief guide for how to set up torchquad.
+This is a brief guide for how to set up torchquad on your local machine such that you can run the Mumford Grammar
+
 
 ### Prerequisites
+
+* [Python 3.6+](https://www.python.org/downloads/)
+* [PyTorch](https://pytorch.org/)
+* [Tensorflow](https://www.tensorflow.org/)
+* [conda](https://docs.conda.io/en/latest/)
+* [PyTorch](https://pytorch.org/)
+
+* 
+
 
 We recommend using [conda](https://anaconda.org/conda-forge/torchquad), especially if you want to utilize the GPU.
 With PyTorch it will automatically set up CUDA and the cudatoolkit for you, for example.
@@ -121,6 +201,129 @@ The PyTorch backend with CUDA support can be installed with
    conda install "cudatoolkit>=11.1" "pytorch>=1.9=*cuda*" -c conda-forge -c pytorch
    ```
 
+
+<!-- USAGE EXAMPLES -->
+## Usage
+
+
+
+### Example 1: Integration of a simple function
+
+The following example shows how to integrate a simple function with torchquad.
+The function is defined as
+
+
+
+   ```python
+def f(x):
+         return x ** 2
+ ```
+    ```python
+    from torchquad import integrate
+    from torchquad.integration import AdaptiveCubature
+    from torchquad.utils import get_default_device
+    
+    # Define the integration domain
+    a = 0
+    b = 1
+    
+    # Define the integration method
+    method = AdaptiveCubature()
+    
+    # Define the integration domain
+    domain = [[a, b]]
+    
+    # Define the device
+    device = get_default_device()
+    
+    # Integrate
+    result = integrate(f, domain, method, device=device)
+    
+    # Print the result
+    print(result)
+    ```
+    ```python
+    {'result': tensor([0.3333], device='cuda:0'),
+     'error': tensor([0.], device='cuda:0'),
+     'nfev': 4,
+     'neval': 4,
+     'success': True}
+    ```
+    
+### Example 2: Integration of a simple function with a custom integration domain
+
+In the following example, we integrate a simple function with a custom integration domain.
+The function is defined as 
+
+
+```python
+def f(x):
+    return x ** 2
+```
+```python
+
+
+
+The integration is performed with the [Trapezoidal rule](https://en.wikipedia.org/wiki/Trapezoidal_rule) with 1000 points.
+```python
+
+from torchquad import Trapezoidal
+from torchquad import integrate
+    
+# Define the integration domain
+a = 0
+b = 1
+    
+# Define the integration method
+method = Trapezoidal()
+    
+# Define the number of points
+N = 1000
+    
+# Perform the integration
+result = integrate(f, a, b, method, N)
+    
+#Print the result
+print(result)
+    
+#Print the error
+print(result - 1 / 3)
+    
+#Print the relative error
+print((result - 1 / 3) / (1 / 3))
+    
+#Print the absolute error
+print(abs(result - 1 / 3))
+    
+    
+#Output: 
+# tensor(0.3333, dtype=torch.float64)
+# tensor(1.1102e-16, dtype=torch.float64)
+# tensor(3.3333e-17, dtype=torch.float64)
+    
+ ```
+    
+### Example 2: Integration of a simple function with a GPU
+
+The following example shows how to integrate a simple function with torchquad on a GPU.
+The function is defined as
+
+```python
+def f(x):
+       return x ** 2
+   ```
+
+```python
+from torchquad import integrate
+from torchquad.integration import AdaptiveCubature
+
+# Define the integration domain
+a = 0
+b = 1
+
+# Define the integration method
+method = AdaptiveCubature()
+```
 Note that since PyTorch is not yet on *conda-forge* for Windows, we have explicitly included it here using `-c pytorch`.
 Note also that installing PyTorch with *pip* may **not** set it up with CUDA support. Therefore, we recommend to use *conda*.
 
@@ -129,21 +332,68 @@ Here are installation instructions for other numerical backends:
    conda install "tensorflow>=2.6.0=cuda*" -c conda-forge
    pip install "jax[cuda]>=0.2.22" --find-links https://storage.googleapis.com/jax-releases/jax_releases.html # linux only
    conda install "numpy>=1.19.5" -c conda-forge
+   
+   
    ```
 
-More installation instructions for numerical backends can be found in
-[environment_all_backends.yml](/environment_all_backends.yml) and at the
-backend documentations, for example
-https://pytorch.org/get-started/locally/,
-https://github.com/google/jax/#installation and
-https://www.tensorflow.org/install/gpu, and often there are multiple ways to
-install them.
+EinstAI is an interleaving Stochastic Context Free Grammar (SCFG) that can be used to generate sentences in the Mumford Grammar. The following example shows how to use torchquad to integrate the EinstAI model.
+
+   ```python
+    from torchquad import Trapezoidal
+    from torchquad import integrate
+    
+    # Define the integration domain
+    a = 0
+    b = 1
+    
+    # Define the integration method
+    method = Trapezoidal()
+    
+    # Define the number of points
+    N = 1000
+    
+    # Perform the integration
+    result = integrate(f, a, b, method, N)
+    
+    # Print the result
+    print(result)
+    
+    # Print the error
+    print(result - 1 / 3)
+    
+    # Print the relative error
+    print((result - 1 / 3) / (1 / 3))
+    
+    # Print the absolute error
+    print(abs(result - 1 / 3))
+    
+    
+    # Output:
+    # tensor(0.3333, dtype=torch.float64)
+    # tensor(1.1102e-16, dtype=torch.float64)
+    # tensor(3.3333e-17, dtype=torch.float64)
+    
+    ```
+    
+### Example 3: Integration of a simple function with a GPU
+
+The following example shows how to integrate a simple function with torchquad on a GPU.
+The function is defined as
+   ```python
+   def f(x):
+       return x ** 2
+   ```
+
 
 
 ### Test
 
 After installing `torchquad` and PyTorch through `conda` or `pip`,
 users can test `torchquad`'s correct installation with:
+    ```sh
+    python -m unittest discover -s tests
+    ``` 
+
 
 ```py
 import torchquad
@@ -156,12 +406,8 @@ After cloning the repository, developers can check the functionality of `torchqu
 pytest
 ```
 
-<!-- USAGE EXAMPLES -->
-## Usage
 
-This is a brief example how torchquad can be used to compute a simple integral with PyTorch. For a more thorough introduction please refer to the [tutorial](https://torchquad.readthedocs.io/en/main/tutorial.html) section in the documentation.
-
-The full documentation can be found on [readthedocs](https://torchquad.readthedocs.io/en/main/).
+<!-- ROADMAP -->
 
 ```Python3
 # To avoid copying things to GPU memory,

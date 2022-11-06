@@ -1,4 +1,9 @@
 from autoray import numpy as anp
+from autoray import infer_backend, register_function
+from functools import partial
+from loguru import logger
+
+
 from autoray import astype
 
 from .utils import _add_at_indices
@@ -36,6 +41,16 @@ class VEGASMultiStratification:
         # (self.n, self.N_cubes)
         self.JF = anp.zeros([self.n, self.N_cubes], dtype=self.dtype, like=backend)
         self.JF2 = anp.zeros([self.n, self.N_cubes], dtype=self.dtype, like=backend)
+
+        # counts for each cube
+        self.strat_counts = anp.zeros([self.n, self.N_cubes], dtype=self.dtype, like=backend)
+
+
+        # (self.n, self.N_cubes)
+        self.strat_weights = anp.zeros([self.n, self.N_cubes], dtype=self.dtype, like=backend)
+
+
+
 
         # dampened counts
         # (self.n, self.N_cubes)

@@ -3,19 +3,29 @@ Utility functions for the integrator implementations including extensions for
 autoray, which are registered when importing this file
 """
 import sys, time
+
+from torchquad.utils.set_precision import _get_precision
+from torchquad.utils.set_up_backend import _get_default_backend
+
+add_time = 0
+def _get_add_time():
+    global add_time
+    return add_time
 from pathlib import Path
 # Change the path to import from the parent folder.
 # A relative import currently does not work when executing the tests.
 sys.path.append(str(Path(__file__).absolute().parent.parent))
 
 from autoray import numpy as anp
+from autoray import infer_backend
 from autoray import infer_backend, register_function
 from functools import partial
 from loguru import logger
 
-# from ..utils.set_precision import _get_precision
-from utils.set_precision import _get_precision
-from utils.set_up_backend import _get_default_backend
+def _get_logger():
+    return logger
+
+
 
 
 def _linspace_with_grads(start, stop, N, requires_grad):

@@ -1,4 +1,31 @@
 from autoray import numpy as anp
+from autoray import do as ado
+import numpy as np
+import torch
+
+def trapezoid(f, a, b, n):
+    """Trapezoid rule for numerical integration.
+    Args:
+        f (callable): Function to integrate.
+        a (float): Lower bound of integration.
+        b (float): Upper bound of integration.
+        n (int): Number of intervals.
+    Returns:
+        float: Integral approximation.
+    """
+    x = anp.linspace(a, b, n + 1)
+    y = f(x)
+    return ado(np.trapz, y, x)
+
+def main():
+    f = lambda x: torch.sin(x)
+    a = 0
+    b = 1
+    n = 10
+    print(trapezoid(f, a, b, n))
+
+if __name__ == "__main__":
+    main()
 
 from .newton_cotes import NewtonCotes
 
@@ -23,6 +50,8 @@ class Trapezoid(NewtonCotes):
             backend-specific number: Integral value
         """
         return super().integrate(fn, dim, N, integration_domain, backend)
+
+
 
     @staticmethod
     def _apply_composite_rule(cur_dim_areas, dim, hs):

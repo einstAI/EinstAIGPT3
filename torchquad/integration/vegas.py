@@ -1,6 +1,18 @@
+import self
 from autoray import numpy as anp
 from autoray import infer_backend, astype
+from functools import partial
 from loguru import logger
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+import torch.utils.data as data
+import torch.utils.data.dataloader as dataloader
+import torch.utils.data.dataset as dataset
+import torch.utils.data.sampler as sampler
+import torchvision
 
 
 from .base_integrator import BaseIntegrator
@@ -8,6 +20,305 @@ from .utils import _setup_integration_domain
 from .rng import RNG
 from .vegas_map import VEGASMap
 from .vegas_stratification import VEGASStratification
+
+
+
+
+class VEGAS(BaseIntegrator):
+    """VEGAS is a Monte Carlo integration algorithm that uses stratification and importance sampling.
+
+    Args:
+        integration_domain (list or backend tensor): Integration domain, e.g. [[-1,1],[0,1]].
+        n_dim (int): Dimension of the integration domain. If this is specified, the integration_domain is ignored.
+        n_eval (int): Number of evaluations.
+        batch_size (int): Number of function evaluations per batch.
+        n_stratification (int): Number of stratification samples.
+        n_refinements (int): Number of refinement iterations.
+        n_importance (int): Number of importance samples.
+        stratification_method (str): Stratification method. Can be "quantile" or "sobol".
+        importance_method (str): Importance method. Can be "sobol" or "quantile".
+        seed (int): Seed for the random number generator.
+        device (str): Device to use for the computation. Can be "cpu" or "cuda".
+        dtype (str): Datatype to use for the computation. Can be "float32" or "float64".
+    """
+
+    def __init__(
+        self,
+        integration_domain=None,
+        n_dim=None,
+        n_eval=10000,
+        batch_size=1000,
+        n_stratification=1000,
+        n_refinements=5,
+        n_importance=1000,
+        stratification_method="quantile",
+        importance_method="sobol",
+        seed=0,
+        device="cpu",
+        dtype="float64",
+    ):
+
+        self.vegas_stratification = VEGASStratification(
+            n_stratification=n_stratification,
+            n_refinements=n_refinements,
+            stratification_method=stratification_method,
+            importance_method=importance_method,
+            seed=seed,
+            device=device,
+            dtype=dtype,
+        )
+
+        self.vegas_map = VEGASMap(
+            n_eval=n_eval,
+            batch_size=batch_size,
+            n_importance=n_importance,
+            seed=seed,
+            device=device,
+            dtype=dtype,
+        )
+
+        self.integration_domain = _setup_integration_domain(
+            integration_domain, n_dim, device, dtype
+        )
+
+        self.seed = seed
+        self.device = device
+        self.dtype = dtype
+
+        self.rng = RNG(seed=seed, device=device, dtype=dtype)
+
+        self._backend = infer_backend(self.integration_domain)
+        self._dim = self._get_dim(self.integration_domain)
+        self._n_eval = n_eval
+
+        self._n_stratification = n_stratification
+        self._n_refinements = n_refinements
+        self._n_importance = n_importance
+        self._stratification_method = stratification_method
+        self._importance_method = importance_method
+
+        self._batch_size = batch_size
+        self._n_batches = int(self._n_eval / self._batch_size)
+
+        self._n_samples = self._n_stratification * self._n_refinements
+        self._n_samples_per_batch = int(self._n_samples / self._n_batches)
+
+        self._n_importance_samples = self._n_importance * self._n_refinements
+
+        self._n_importance_samples_per_batch = int(
+
+
+        """Integrate a function using VEGAS.
+
+        Args:
+            f (callable): Function to integrate.
+            n_eval (int): Number of evaluations.
+            batch_size (int): Number of function evaluations per batch.
+            n_stratification (int): Number of stratification samples.
+            n_refinements (int): Number of refinement iterations.
+            n_importance (int): Number of importance samples.
+            stratification_method (str): Stratification method. Can be "quantile" or "sobol".
+            importance_method (str): Importance method. Can be "sobol" or "quantile".
+        Returns:
+            float: Integral estimate.
+            float: Integral uncertainty estimate.
+        """
+
+if __name__ == "__main__":
+    import torchquad as tq
+
+    def f(x):
+        return x[:, 0] ** 2 + x[:, 1] ** 2
+
+    integrator = tq.VEGAS(n_eval=10000, n_stratification=1000, n_refinements=5)
+    integral, error = integrator.integrate(f)
+    print(integral, error)
+    for i in range(10):
+        integral, error = integrator.integrate(f)
+        print(integral, error)
+        # Stratification
+        stratification_samples = self.vegas_stratification.get_samples(
+            self.integration_domain, self._n_samples
+        )
+        stratification_weights = self.vegas_stratification.get_weights(
+            self.integration_domain, stratification_samples
+        )
+
+        # Map
+        map_samples, map_weights = self.vegas_map.get_samples_and_weights(
+            f,
+            self.integration_domain,
+            stratification_samples,
+            stratification_weights,
+            self._n_importance_samples,
+        )
+
+        # Integrate
+        integral = self._integrate(f, map_samples, map_weights)
+
+        return integral
+
+    def _integrate(self, f, samples, weights):
+        """Integrate a function using VEGAS.
+
+        Args:
+            f (callable): Function to integrate.
+            samples (backend tensor): Samples to use for the integration.
+            weights (backend tensor): Weights to use for the integration.
+        Returns:
+            float: Integral estimate.
+            float: Integral uncertainty estimate.
+        """
+
+        # Compute the integral
+        integral = self._backend.sum(f(samples) * weights, axis=0)
+        integral /= self._n_samples
+
+        # Compute the integral uncertainty
+        integral_uncertainty = self._backend.sum(
+            (f(samples) - integral) ** 2 * weights, axis=0
+        )
+        integral_uncertainty /= self._n_samples
+        integral_uncertainty = self._backend.sqrt(integral_uncertainty)
+
+        return integral, integral_uncertainty
+        # Set default values for the input parameters
+        if n_eval is None:
+            n_eval = self.n_eval
+        if batch_size is None:
+            batch_size = self.batch_size
+        if n_stratification is None:
+            n_stratification = self.n_stratification
+        if n_refinements is None:
+            n_refinements = self.n_refinements
+        if n_importance is None:
+            n_importance = self.n_importance
+        if stratification_method is None:
+            stratification_method = self.stratification_method
+        if importance_method is None:
+            importance_method = self.importance_method
+
+        # Set up the integration domain
+        integration_domain = _setup_integration_domain(
+            self.integration_domain, self.n_dim, self.backend
+        )
+
+        # Set up the random number generator
+        rng = RNG(self.backend, self.dtype, self.device)
+        rng.set_seed(self.seed)
+
+        # Set up the stratification map
+        vegas_map = VEGASMap(
+            self.backend,
+            self.dtype,
+            self.device,
+            self.n_dim,
+            n_stratification,
+            stratification_method,
+        )
+
+        # Set up the importance map
+        importance_map = VEGASMap(
+            self.backend,
+            self.dtype,
+            self.device,
+            self.n_dim,
+            n_importance,
+            importance_method,
+        )
+
+        # Initialize the weights
+        weights = torch.ones(n_stratification, dtype=self.dtype, device=self.device)
+
+        # Initialize the importance weights
+        importance_weights = torch.ones(
+            n_importance, dtype=self.dtype, device=self.device
+        )
+
+        # Initialize the integral estimate
+        integral = torch
+        """Integrate a function.
+
+        Args:
+            f (callable): Function to integrate. Must take backend tensors as input.
+            n_eval (int): Number of evaluations.
+            batch_size (int): Number of function evaluations per batch.
+            n_stratification (int): Number of stratification samples.
+            n_refinements (int): Number of refinement iterations.
+            n_importance (int): Number of importance samples.
+            stratification_method (str): Stratification method. Can be "quantile" or "sobol".
+            importance_method (str): Importance method. Can be "sobol" or "quantile".
+
+        Returns:
+            float or backend tensor: Integral.
+        """
+        if n_eval is None:
+            n_eval = self.n_eval
+        if batch_size is None:
+            batch_size = self.batch_size
+        if n_stratification is None:
+            n_stratification = self.n_stratification
+        if n_refinements is None:
+            n_refinements = self.n_refinements
+        if n_importance is None:
+            n_importance = self.n_importance
+        if stratification_method is None:
+            stratification_method = self.stratification_method
+        if importance_method is None:
+            importance_method = self.importance_method
+
+        # Initialize stratification
+        stratification = self.vegas_stratification.initialize_stratification(
+            f=f,
+            n_eval=n_eval,
+            batch_size=batch_size,
+            n_stratification=n_stratification,
+            n_refinements=n_refinements,
+            n_importance=n_importance,
+            stratification_method=stratification_method,
+            importance_method=importance_method,
+        )
+
+        # Initialize refinement
+        refinement = self.vegas_stratification.initialize_refinement(
+            stratification=stratification,
+            n_refinements=n_refinements,
+            n_importance=n_importance,
+            importance_method=importance_method,
+        )
+
+        # Initialize importance
+        importance = self.vegas_stratification.initialize_importance(
+            refinement=refinement,
+            n_importance=n_importance,
+            importance_method=importance_method,
+        )
+
+        # Initialize importance
+        stratification = self.vegas_stratification.initialize_stratification(
+            f=f,
+            n_eval=n_eval,
+            batch_size=batch_size,
+            n_stratification=n_stratification,
+            n_refinements=n_refinements,
+            n_importance=n_importance,
+            stratification_method=stratification_method,
+            importance_method=importance_method,
+        )
+
+        # Initialize refinement
+        refinement = self.vegas_stratification.initialize_refinement(
+
+            stratification=stratification,
+            n_refinements=n_refinements,
+            n_importance=n_importance,
+
+            importance_method=importance_method,
+        )
+
+
+
+
 
 
 class VEGAS(BaseIntegrator):
@@ -122,13 +433,55 @@ class VEGAS(BaseIntegrator):
             self._N_increment,
             dim=self._dim,
             rng=self.rng,
-            backend=self.backend,
+            backend=self.backend
+
             dtype=self.dtype,
         )
 
         logger.debug("Starting VEGAS")
 
+        for iteration in range(self._max_iterations):
+            # Execute warmup
+            if iteration == 0 and use_warmup:
+                self._warmup()
+
+            # Execute iteration
+            self._iterate()
+
+            # Check if the error is small enough
+            if self._error_is_small():
+                break
+
+        # Return the integral value
+        return self._integral_value()
+
         self.results = []  # contains integration results per iteration
+        if self._nr_of_fevals > self.N:
+            logger.warning(
+                "The number of function evaluations exceeded the maximum number of evaluations."
+            )
+
+    def _warmup(self):
+        """Executes a warmup to initialize the vegas map."""
+        logger.debug("Starting warmup")
+        # Execute warmup
+        warmup_N = self._starting_N // 10
+        warmup_points = self.rng.uniform((warmup_N, self._dim))
+        warmup_fn_values = self._fn(warmup_points)
+        self._nr_of_fevals += warmup_N
+        self.map.update(warmup_points, warmup_fn_values)
+        logger.debug("Finished warmup")
+
+    def _iterate(self, use_warmup=None):
+
+        """Executes one iteration of VEGAS."""
+        logger.debug("Starting iteration")
+        # Execute stratification
+        strat_points = self.strat(self.map)
+        strat_fn_values = self._fn(strat_points)
+        self._nr_of_fevals += self._N_increment
+        # Update the map
+        self.map.update(strat_points, strat_fn_values)
         self.sigma2 = []  # contains variance per iteration
 
         self.it = 0  # iteration

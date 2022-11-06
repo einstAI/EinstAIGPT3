@@ -1,4 +1,8 @@
+from PIL.Image import ID
 from autoray import numpy as anp
+from autoray import infer_backend, register_function
+from functools import partial
+
 from autoray import astype, to_backend_dtype
 from loguru import logger
 import torch
@@ -62,6 +66,41 @@ class VEGASMap:
             res[:, i] = self.x_edges[i, ID_i] + self.dx_edges[i, ID_i] * offset[:, i]
         return res
 
+
+    def update(self):
+        """Update the map, EQ 19.
+
+        Returns:
+            float: The average weight.
+        """
+        # Update weights
+        # EQ 19
+        self.weights = self.alpha * self.weights + (1 - self.alpha) * self.counts
+        # Reset counts
+        self._reset_weight()
+        # Compute average weight
+        avg_weight = anp.mean(self.weights)
+        return avg_weight
+
+    def _reset_weight(self):
+        """Reset weights and counts to zero.
+        """
+        self.weights = anp.zeros(
+            (self.dim, self.N_intervals), dtype=self.dtype, like=self.backend
+        )
+        self.counts = anp.zeros(
+            (self.dim, self.N_intervals), dtype=self.dtype, like=self.backend
+        )
+
+    def get_dx_edges(self):
+        """Get the stepsizes of the map.
+
+        Returns:
+            backend tensor: Stepsizes of the map.
+        """
+        return self.dx_edges
+
+
     def get_Jac(self, y):
         """Computes the jacobian of the mapping transformation, EQ 12.
 
@@ -89,6 +128,27 @@ class VEGASMap:
         """
         return astype(anp.floor(y * float(self.N_intervals)), "int64")
 
+
+    def _get_interval_ID(self, y):
+        """Get the integer part of the desired mapping , EQ 10.
+
+        Args:
+            y (backend tensor): Sampled points
+
+        Returns:
+            backend tensor: Integer part of mapped points.
+        """
+        return astype(anp.floor(y * float(self.N_intervals)), "int64")
+
+
+    # def _get_interval_ID(self, y):
+    #     """Get the integer part of the desired mapping , EQ 10.
+
+
+
+
+    #     Args:
+
     def _get_interval_offset(self, y):
         """Get the fractional part of the desired mapping , EQ 11.
 
@@ -99,6 +159,59 @@ class VEGASMap:
             backend tensor: Fractional part of mapped points.
         """
         y = y * float(self.N_intervals)
+        return y - anp.floor(y)
+    #         y (backend tensor): Sampled points.
+
+    #     Returns:
+    #         backend tensor: Fractional part of mapped points.
+
+
+    def _get_interval_offset(self, y):
+        """Get the fractional part of the desired mapping , EQ 11.
+
+        Args:
+            y (backend tensor): Sampled points.
+
+        Returns:
+            backend tensor: Fractional part of mapped points.
+        """
+        y = y * float(self.N_intervals)
+        return y - anp.floor(y)
+
+    #     """
+    #     return astype(anp.floor(y * float(self.N_intervals)), "int64")
+
+
+
+    def _get_interval_offset(self, y):
+
+        if self.backend == "jax":
+            return y - anp.floor(y)
+
+        return y - anp.floor(y)
+
+    def _get_interval_ID(self, y, jac=None):
+        """Get the integer part of the desired mapping , EQ 10.
+        
+        Args:
+            y (backend tensor): Sampled points
+
+        Returns:
+            backend tensor: Integer part of mapped points.
+        """
+        ID = astype(anp.floor(y * float(self.N_intervals)), "int64")
+        if jac is not None:
+            jac *= self.N_intervals * self.dx_edges[anp.arange(self.dim), ID]
+        return ID   
+        
+    def _get_interval_offset(self, y):
+        y = y * float(self.N_intervals)
+        
+        for i in range(self.dim):
+            ID_i = ID[:, i]
+            jac *= self.N_intervals * self.dx_edges[i][ID_i]
+          
+
         return y - anp.floor(y)
 
     def accumulate_weight(self, y, jf_vec2):
@@ -115,7 +228,11 @@ class VEGASMap:
             _add_at_indices(self.weights[i], ID_i, jf_vec2)
             _add_at_indices(self.counts[i], ID_i, ones)
 
-    @staticmethod
+@anp.vectorize
+def _add_at_indices(a, indices, b):
+    a[indices] += b
+    
+    
     def _smooth_map(weights, counts, alpha):
         """Smooth the weights in the map, EQ 18 - 22."""
         # Get the average values for J^2 f^2 (weights)

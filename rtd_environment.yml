@@ -1,9 +1,8 @@
 name: rtd_torchquad
+
 channels:
   - conda-forge
   - pytorch
-
-
 dependencies:
     - autoray>=0.2.5
     - loguru>=0.5.3
@@ -16,9 +15,14 @@ dependencies:
     - tqdm>=4.56.0
     - numpy>=1.19.5
     - cudatoolkit>=11.1
+    - pytorch>=1.8.1
     - pytorch>=1.9=*cuda*
     - pip:
         - --find-links https://storage.googleapis.com/jax-releases/jax_releases.html
         - jax[cuda]>=0.2.22 # this will only work on linux. for win see e.g.
+        - jaxlib>=0.1.71
+        - torchquad>=0.1.0
+        - torchquad[dev]>=0.1.0
+        - torchquad[docs]>=0.1.0
 
 # Path: rtd_requirements.txt
