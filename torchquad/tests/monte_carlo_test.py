@@ -1,8 +1,24 @@
 import sys
+import pytest
+import torch
+
+
+def test_monte_carlo_cpu():
+    """Test the MonteCarlo class with the CPU backend."""
+    _run_monte_carlo_tests("cpu", 1e-6)
+
+def test_monte_carlo_cuda():
+    """Test the MonteCarlo class with the CUDA backend."""
+    if torch.cuda.is_available():
+        _run_monte_carlo_tests("cuda", 1e-6)
+    else:
+        pytest.skip("CUDA not available")
+
+
 
 sys.path.append("../")
 
-from integration.monte_carlo import MonteCarlo
+
 from helper_functions import (
     compute_integration_test_errors,
     setup_test_for_backend,

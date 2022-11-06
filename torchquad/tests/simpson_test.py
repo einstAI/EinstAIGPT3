@@ -1,10 +1,27 @@
 import sys
 
+from jedi.plugins import pytest
+
 sys.path.append("../")
 
 import warnings
 
-from integration.simpson import Simpson
+
+import torch
+import torchquad
+from torchquad.integration import Simpson
+
+def test_simpson_cpu():
+    """Test the Simpson class with the CPU backend."""
+    _run_simpson_tests("cpu", 1e-6)
+
+def test_simpson_cuda():
+    """Test the Simpson class with the CUDA backend."""
+    if torch.cuda.is_available():
+        _run_simpson_tests("cuda", 1e-6)
+    else:
+        pytest.skip("CUDA not available")
+
 from helper_functions import (
     compute_integration_test_errors,
     setup_test_for_backend,
